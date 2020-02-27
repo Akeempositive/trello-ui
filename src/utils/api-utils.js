@@ -17,7 +17,7 @@ import jwtDecode from "jwt-decode";
     }
 
     if (options.userAccessToken && localStorage.getItem(USER_ACCESS_TOKEN)) {
-        let tempHeaders = {Authorization:`Bearer ${localStorage.getItem(USER_ACCESS_TOKEN)}`}
+        let tempHeaders = {Authorization:`Bearer_${localStorage.getItem(USER_ACCESS_TOKEN)}`}
         setHeader = {...setHeader, ...tempHeaders}
     }
 
@@ -83,7 +83,7 @@ const checkifStatusIsForbidden = (response)=>{
     })
     .catch((error)=> {
         console.log("checkifStatusIsForbidden");
-        if(error.response.status== 403){
+        if(error.response && error.response.status && error.response.status== 403){
             let count=0;
             if(localStorage.getItem(FORBIDDEN_COUNT)){
                 count=parseInt(localStorage.getItem(FORBIDDEN_COUNT))
@@ -92,7 +92,7 @@ const checkifStatusIsForbidden = (response)=>{
             localStorage.setItem(FORBIDDEN_COUNT, count)
         }
         // localStorage.setItem()
-        console.log(error.response.status);
+       // console.log(error.response.status || 'Not Available');
 
     });
 }
@@ -119,25 +119,23 @@ export const axiosLoginRequest = options =>{
     }
 
     let basic = getBasicAuth(APP_CLIENT, APP_PASS)
-    let head = {headers:{"Authorization": basic,'Content-Type': "application/x-www-form-urlencoded"}, data:{}}
+   // let head = {headers:{"Authorization": basic,'Content-Type': "application/x-www-form-urlencoded"}, data:{}}
     // options.headerRequest = {headers:setHeader, data:{}}
     // options.headerRequest.data = {}
 
     console.log("options.headerRequest");
 
-    console.log(head);
+    //console.log(head);
 
-    let apiRequest= axios.post(options.url, options.data, head);
+    let apiRequest= axios.post(options.url, options.data);
 
     return apiRequest;
 
 }
 
 export const storeJwtAccessToken = (accessToken)=>{
-    localStorage.setItem(USER_ACCESS_TOKEN, accessToken);
-    let decodedToken = jwtDecode(accessToken);
-    localStorage.setItem(USER_AUTHORITIES,decodedToken.authorities)
-
+    localStorage.setItem(USER_ACCESS_TOKEN, accessToken.token);
+    localStorage.setItem(USER_AUTHORITIES,accessToken.authorities)
 }
 export const storeJwtExpireToken = (tokenExpirationTime) =>{
     localStorage.setItem(TOKEN_DATE, Date.now())

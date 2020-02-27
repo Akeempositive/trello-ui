@@ -5,11 +5,12 @@ import ProtectedRoute from './common/ProtectedRoute';
 import Login from './pages/login/login';
 import Signup from './pages/signup/signup';
 // import Dashboard from './pages/doctor/dashboardpage/dashboard'
-import DashboarPage from './pages/dashboard/dashboard'
+import TaskPage from './pages/tasks/dashboard'
 import Drugpage from './pages/doctor/drugpage/drug'
 import AuditTrailPage from './pages/doctor/auditTrail/auditTrail'
 import UserPage from './pages/doctor/user/userpage'
 import UserInfoPage from './pages/doctor/userinfo/userinfo'
+import WeeklyReportPage from './pages/weekly-report';
 
 
 class App extends Component {
@@ -31,7 +32,9 @@ class App extends Component {
             <HashRouter>
                 <Route exact path='/' component={Login} />
                 {/* <Route exact path='/sign-up' component={Signup} /> */}
-                <Route exact path='/dashboard-task' component={DashboarPage} />
+                <Route exact path='/tasks' component={TaskPage} />
+                <Route exact path='/weekly-report' component={WeeklyReportPage} />
+                <Route exact path="/users" component={UserPage} />
 
                 
                 {/* <ProtectedRoute exact path="/dashboard" component={Dashboard} /> */}

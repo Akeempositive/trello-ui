@@ -57,18 +57,15 @@ class LoginForm extends Component  {
                 login(values)
                 .then(response=>{
                     console.log(Date.now())
-                    // console.log(response);
-                    // console.log(response.data.access_token)
-                    // console.log(jwtDecode(response.data.access_token));
                     storeToken(response.data)
                     notification['success']({
-                        message: 'MEDTHREAT',
+                        message: 'MCS',
                         description:
                           'Successfully Logged In.',
                       });
                     this.props.form.resetFields();
                     this.setState({isloading:false})
-                    this.setRoute("drug")
+                    this.setRoute("tasks")
                 }).
                 catch((error)=> {
                     if(error.response){
@@ -76,7 +73,7 @@ class LoginForm extends Component  {
                       if(error.response.status==400 && error.response.data.error=="invalid_grant" && error.response.data.error_description=="User account is locked"){
                         this.setState({isloading:false})
                         notification['error']({
-                            message: 'MEDTHREAT',
+                            message: 'MCS',
                             description:
                               `This Account Has been Blocked, Contact Administrator.`,
                           });
@@ -85,7 +82,7 @@ class LoginForm extends Component  {
                         
                         this.setState({isloading:false})
                         notification['error']({
-                            message: 'MEDTHREAT',
+                            message: 'MCS',
                             description:
                               `Username / Password  is Incorrect.`,
                           });
@@ -95,7 +92,7 @@ class LoginForm extends Component  {
                         
                         this.setState({isloading:false})
                         notification['error']({
-                            message: 'MEDTHREAT',
+                            message: 'MCS',
                             description:
                               `An Error occured Contact Administrator.`,
                           });
@@ -105,7 +102,7 @@ class LoginForm extends Component  {
                     }else{
                         this.setState({isloading:false})
                         notification['error']({
-                            message: 'MEDTHREAT',
+                            message: 'MCS',
                             description:
                               `An Error occured Contact Administrator.`,
                           });  
@@ -145,7 +142,7 @@ class LoginForm extends Component  {
                 <div className="container">
                     <div className="login-content">
                         <div className="login-logo">
-                            <h2>MEDTHREAT</h2>
+                            <h2>MCS</h2>
                         </div>
                         <div className="login-form">
                             <Spin spinning={this.state.isloading}>
@@ -153,7 +150,7 @@ class LoginForm extends Component  {
                                     <div className="row">
                                         <div className="col-md-12">
                                             <FormItem>
-                                                {getFieldDecorator('username', {
+                                                {getFieldDecorator('email', {
                                                     rules: [
                                                         {
                                                             required: true,
@@ -164,7 +161,8 @@ class LoginForm extends Component  {
                                                     <Input
                                                         className="form-control"
                                                         prefix={<Icon type="user"/>}
-                                                        name="username"
+                                                        name="email"
+                                                        type="text"
                                                         placeholder=" Email"
                                                     />
                                                 )}

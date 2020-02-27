@@ -1,4 +1,4 @@
-export const API_BASE_URL = 'https://medthreatapp.herokuapp.com';
+export const API_BASE_URL = 'http://localhost:8989';
 
 
 export const APP_NAME = 'Recharge Portal';

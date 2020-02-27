@@ -14,36 +14,18 @@ export function login(loginRequest) {
         let encodedValue = encodeURIComponent(loginRequest[property]);
         formBody.push(`${encodedKey}=${encodedValue}`);
     }
-
-    // const formData = new FormData();
-
-    // for (let property in loginRequest) {
-    //     let formDataKey = property;
-    //     let formDataValue = loginRequest[property];
-    //     formData.append(formDataKey,formDataValue )
-    // }
     formBody = formBody.join('&');
-    console.log(formBody);
-
-    // let head = {headers:{"Authorization": "Basic bWVkdGhyZWF0OjEyMzQ1Ng==",'Content-Type': "application/x-www-form-urlencoded"}, data:{}}
-    // console.log(head);
-    // return axios.post(API_BASE_URL + '/oauth/token',formBody, head)
-
-    // options.url, options.data, options.headerRequest
-    return axiosLoginRequest({
-        url: API_BASE_URL + '/oauth/token',
+    console.log(formBody); return axiosLoginRequest({
+        url: API_BASE_URL + '/api/auth/login',
         method: POSTMETHOD,
-        data: formBody,
-        useBasic: true,
-        // headerType: 'application/json'
-
-        headerType: 'application/x-www-form-urlencoded'
+        data: {email: loginRequest.email, password: loginRequest.password, username: loginRequest.email},
+        headerType: 'application/json'
     });
 }
 
 export const storeToken= (token) =>{
-    storeJwtAccessToken(token.access_token);
-    storeJwtExpireToken(token.expires_in)
+    storeJwtAccessToken(token);
+    storeJwtExpireToken(token.expireAt)
 }
 
 
