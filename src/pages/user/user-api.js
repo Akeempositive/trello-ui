@@ -1,19 +1,28 @@
-import {APP_ACCESS_TOKEN,API_BASE_URL,GETMETHOD,POSTMETHOD,PUTMETHOD,DELETEMETHOD} from '../../../constants';
+import {USERID, APP_ACCESS_TOKEN,API_BASE_URL,GETMETHOD,POSTMETHOD,PUTMETHOD,DELETEMETHOD} from '../../constants';
 import { notification} from 'antd';
-import {axiosRequest} from  '../../../utils/api-utils'
+import {axiosRequest} from  '../../utils/api-utils'
+import {state} from '../../utils/state-utils'
 
 
 
 
 
 export const fetchAllUsers= async(form)=>{
-    console.log("fetchAllUsers")    
-     return axiosRequest({
+    return axiosRequest({
         userAccessToken: true,
         headerType:`application/json`,
-        headerTypeData:true,
-        url: `${API_BASE_URL}/api/v1/user/get-all-users/validate`,
+        url: `${API_BASE_URL}/api/users/getAllVisibleUserById/` + state(USERID),
         method: GETMETHOD
+    })
+}
+
+export const saveUser = async(user) => {
+    return axiosRequest({
+        userAccessToken: true,
+        headerType:`application/json`,
+        data : user,
+        url: `${API_BASE_URL}/api/users/add`,
+        method: POSTMETHOD
     })
 }
 

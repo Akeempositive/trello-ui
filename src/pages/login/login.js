@@ -65,7 +65,11 @@ class LoginForm extends Component  {
                       });
                     this.props.form.resetFields();
                     this.setState({isloading:false})
-                    this.setRoute("tasks")
+                    if(response.data.user.role.name = 'ADMIN'){
+                        this.setRoute('users');
+                    }else {
+                        this.setRoute('tasks')
+                    }
                 }).
                 catch((error)=> {
                     if(error.response){

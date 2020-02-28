@@ -4,12 +4,8 @@ import {Route, withRouter,HashRouter} from 'react-router-dom';
 import ProtectedRoute from './common/ProtectedRoute';
 import Login from './pages/login/login';
 import Signup from './pages/signup/signup';
-// import Dashboard from './pages/doctor/dashboardpage/dashboard'
 import TaskPage from './pages/tasks/dashboard'
-import Drugpage from './pages/doctor/drugpage/drug'
-import AuditTrailPage from './pages/doctor/auditTrail/auditTrail'
-import UserPage from './pages/doctor/user/userpage'
-import UserInfoPage from './pages/doctor/userinfo/userinfo'
+import UserPage from './pages/user/userpage'
 import WeeklyReportPage from './pages/weekly-report';
 
 

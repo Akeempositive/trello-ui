@@ -2,8 +2,9 @@ import React, { Component } from 'react';
 import Header from '../../partials/header';
 import Navbar from '../../partials/navbar'
 import BreadCrumb from '../../partials/breadcrumb'
-import{tasks} from '../tasks/dashboard-datasource'
-// import {hasAuthority} from  '../../utils/api-utils'
+import {tasks} from './dashboard-datasource'
+import {getTaskByUserId} from './dashboard-api'
+import {hasAuthority} from  '../../utils/api-utils'
 
 import {
     Form,
@@ -28,6 +29,7 @@ class TasksPage extends Component  {
         super(props);
         this.state={
             tasks:[],
+            taskViewType : '',
             name:"",
             description:"",
             status:"",
@@ -109,6 +111,16 @@ class TasksPage extends Component  {
         return columns
     }
 
+    createTaskPriviledge = () => {
+        if(hasAuthority(['can_create_new_task'])){
+            return (
+                <span className="pull-right">
+                    <a onClick={()=>{this.viewTaskModal()}}>Create New Task <Icon type="plus-circle" /></a>
+                </span>
+            );
+        }
+    }
+
 
     handleChange=(value)=>{
         console.log(`selected ${value}`);
@@ -116,14 +128,25 @@ class TasksPage extends Component  {
 
     getAllTask = () =>{
         this.setState({isloading:true})
-        this.setState({tasks:tasks});
-
-
-        this.setState({isloading:false})
+        getTaskByUserId()
+        .then(response=>{
+                  notification['success']({
+                       message: 'MCS',
+                       description:'Get User Task Successfully',
+                  });
+                  this.setState({isloading:false, tasks: response.data})
+             }).catch((error)=> {
+                  this.setState({isloading:false})
+                  notification['error']({
+                  message: 'MCS',
+                  description: `Error retrieving userTask.`,
+               });
+           });
     }
 
     createTask = () => {
-        console.log('Creating task')
+        // createTask()
+        // .then
     }
 
     cancelCreateTaskModal = () => {
@@ -136,12 +159,9 @@ class TasksPage extends Component  {
     }
 
     viewTaskModal =()=>{
-        this.setState({visible:true})
+        this.setState({visible:true, taskViewType: 'Create'})
     }
-
-
-
-  render() {
+  render(){
     const bodystyle =  {
         background: "#f1f2f7",
         display: "table",
@@ -161,9 +181,6 @@ class TasksPage extends Component  {
 
             <div  class="right-panel ">
                 <Header></Header>
-                {/* <!-- /header --> */}
-                {/* <!-- Header--> */}
-
                 <BreadCrumb menu="User" submenu=" "></BreadCrumb>
 
                 <div class="content mt-3">
@@ -229,9 +246,7 @@ class TasksPage extends Component  {
                                 <div className="card">
                                     <div className="card-header">
                                         <strong className="card-title">Tasks</strong>
-                                        <span className="pull-right">
-                                            <a onClick={()=>{this.viewTaskModal()}}><Icon type="plus-circle" /></a>
-                                        </span>
+                                        {this.createTaskPriviledge()}
                                     </div>
                                     <div className="card-body">
                                         <Table columns={this.getTableHeader()} dataSource={this.state.tasks} />
@@ -242,12 +257,12 @@ class TasksPage extends Component  {
 
                             <div className="col-md-12">
                                 <Modal
-                                    title="Create Task "
+                                    title={this.state.taskViewType + ' Task'}
                                     visible={this.state.visible}
                                     onOk={this.createTask}
                                     // okButtonProps={{ disabled: this.isFormInvalid() }}
                                     onCancel={this.cancelCreateTaskModal}
-                                    okText="UPDATE"
+                                    okText={this.state.taskViewType}
                                     >
                                         <div className="row">
                                             <Form onSubmit={this.handleSubmit} className="signup-form">

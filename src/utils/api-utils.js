@@ -1,5 +1,5 @@
 import axios from 'axios';
-import {APP_ACCESS_TOKEN, FORBIDDEN_COUNT, APP_CLIENT, APP_PASS, GETMETHOD,POSTMETHOD,PUTMETHOD,USER_ACCESS_TOKEN,USER_AUTHORITIES,USER_TOKEN_EXPIRATION,TOKEN_DATE, DELETEMETHOD} from '../constants'
+import {USERID, APP_ACCESS_TOKEN, USER, FORBIDDEN_COUNT, APP_CLIENT, APP_PASS, GETMETHOD,POSTMETHOD,PUTMETHOD,USER_ACCESS_TOKEN,USER_AUTHORITIES,USER_TOKEN_EXPIRATION,TOKEN_DATE, DELETEMETHOD} from '../constants'
 import jwtDecode from "jwt-decode";
 
  export const axiosRequest = options =>{
@@ -12,12 +12,12 @@ import jwtDecode from "jwt-decode";
     }
 
     if (options.useAppAccessToken && localStorage.getItem(APP_ACCESS_TOKEN)) {
-        let tempHeaders = {Authorization:`Bearer ${localStorage.getItem(APP_ACCESS_TOKEN)}`}
+        let tempHeaders = {Authorization: localStorage.getItem(APP_ACCESS_TOKEN)}
         setHeader = {...setHeader, ...tempHeaders}
     }
 
     if (options.userAccessToken && localStorage.getItem(USER_ACCESS_TOKEN)) {
-        let tempHeaders = {Authorization:`Bearer_${localStorage.getItem(USER_ACCESS_TOKEN)}`}
+        let tempHeaders = {Authorization: localStorage.getItem(USER_ACCESS_TOKEN)}
         setHeader = {...setHeader, ...tempHeaders}
     }
 
@@ -26,7 +26,7 @@ import jwtDecode from "jwt-decode";
         setHeader = {...setHeader, ...tempHeaders}
     }
 
-    
+    setHeader["Access-Control-Allow-Origin"] =  "*";
 
     // if(options.useClientToken){
     //     let tempHeaders={Authorization:`Bearer ${getClientToken()}`}
@@ -135,6 +135,8 @@ export const axiosLoginRequest = options =>{
 
 export const storeJwtAccessToken = (accessToken)=>{
     localStorage.setItem(USER_ACCESS_TOKEN, accessToken.token);
+    localStorage.setItem(USER, accessToken.user);
+    localStorage.setItem(USERID, accessToken.user.id);
     localStorage.setItem(USER_AUTHORITIES,accessToken.authorities)
 }
 export const storeJwtExpireToken = (tokenExpirationTime) =>{

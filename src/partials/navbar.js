@@ -51,6 +51,7 @@ class Header extends Component  {
                                     <li>
                                         <Link to={`/tasks`} ><i className="fa fa-puzzle-piece"></i>Task</Link>
                                         <Link to={`/users`}><i className="fa fa-people"></i>Users</Link>
+                                        <Link to={`/weekly-report`}><i className="fa fa-card"></i>Reports</Link>
                                     </li>
                                     {/* <li><i class="fa fa-puzzle-piece"></i><a href="ui-buttons.html">Buttons</a></li>
                                     <li><i class="fa fa-id-badge"></i><a href="ui-badges.html">Badges</a></li>
