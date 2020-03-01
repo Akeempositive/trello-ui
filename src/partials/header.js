@@ -37,9 +37,9 @@ class Header extends Component  {
                         <div class="dropdown for-notification">
                             <button class="btn btn-secondary dropdown-toggle" type="button" id="notification" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <i class="fa fa-bell"></i>
-                                <span class="count bg-danger">5</span>
+                                <span class="count bg-danger">0</span>
                             </button>
-                            <div class="dropdown-menu" aria-labelledby="notification">
+                            {/* <div class="dropdown-menu" aria-labelledby="notification">
                                 <p class="red">You have 3 Notification</p>
                                 <a class="dropdown-item media bg-flat-color-1" href="#">
                                 <i class="fa fa-check"></i>
@@ -53,7 +53,7 @@ class Header extends Component  {
                                 <i class="fa fa-warning"></i>
                                 <p>Server #3 overloaded.</p>
                             </a>
-                            </div>
+                            </div> */}
                         </div>
 
                         <div class="dropdown for-message">
@@ -61,9 +61,9 @@ class Header extends Component  {
                                 id="message"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <i class="ti-email"></i>
-                                <span class="count bg-primary">9</span>
+                                <span class="count bg-primary">0</span>
                             </button>
-                            <div class="dropdown-menu" aria-labelledby="message">
+                            {/* <div class="dropdown-menu" aria-labelledby="message">
                                 <p class="red">You have 4 Mails</p>
                                 <a class="dropdown-item media bg-flat-color-1" href="#">
                                 <span class="photo media-left"><img alt="avatar" src="images/avatar/1.jpg" /></span>
@@ -97,7 +97,7 @@ class Header extends Component  {
                                         <p>Lorem ipsum dolor sit amet, consectetur</p>
                                 </span>
                             </a>
-                            </div>
+                            </div> */}
                         </div>
                     </div>
                 </div>
@@ -109,11 +109,11 @@ class Header extends Component  {
                         </a>
 
                         <div class="user-menu dropdown-menu">
-                            <a class="nav-link" href="#"><i class="fa fa-user"></i> My Profile</a>
+                            {/* <a class="nav-link" href="#"><i class="fa fa-user"></i> My Profile</a> */}
 
-                            <a class="nav-link" href="#"><i class="fa fa-user"></i> Notifications <span class="count">13</span></a>
+                            {/* <a class="nav-link" href="#"><i class="fa fa-user"></i> Notifications <span class="count">13</span></a> */}
 
-                            <a class="nav-link" href="#"><i class="fa fa-cog"></i> Settings</a>
+                            <a class="nav-link"><Link to={`/settings`} ><i class="fa fa-cog"></i> Settings</Link></a>
 
                             <a class="nav-link" ><Link to={`/`} ><i class="fa fa-power-off"></i> Logout</Link></a>
                         </div>

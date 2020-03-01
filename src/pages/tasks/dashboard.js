@@ -3,8 +3,12 @@ import Header from '../../partials/header';
 import Navbar from '../../partials/navbar'
 import BreadCrumb from '../../partials/breadcrumb'
 import {tasks} from './dashboard-datasource'
-import {getTaskByUserId} from './dashboard-api'
+import {getTaskByUserId, createTask} from './dashboard-api'
 import {hasAuthority} from  '../../utils/api-utils'
+import {fetchAllUsers} from '../user/user-api'
+import {Moment} from 'moment'
+import {stateManager} from '../../utils/state-utils'
+import {USER, CAN_UPDATE_TASK} from '../../constants'
 
 import {
     Form,
@@ -29,34 +33,62 @@ class TasksPage extends Component  {
         super(props);
         this.state={
             tasks:[],
-            taskViewType : '',
-            name:"",
-            description:"",
-            status:"",
-            completionDate:new Date(),
-            isloading:true
+            task : {},
+            managers : [],
+            user : {},
+            searchParameters : {
+                name : '',
+                description : '',
+                state : 'ALL',
+                startDate :'',
+                completionDate : ''
+            }
         }
-            // this.onsubmitDrug = this.onsubmitDrug.bind(this);
-
+        
     }
 
     componentDidMount(){
-        this.getAllTask()
+        this.getAllTask();
+        this.getAllVisibleUsers();
+        this.setState({user : JSON.parse(stateManager(USER))});
+    }
+
+    getAllVisibleUsers(){
+        fetchAllUsers()
+        .then(response=>{
+            this.setState({managers:response.data})
+            this.setState({isloading:false})
+        })
+        .catch((error)=> {
+            console.log("User Error Response");
+
+            notification['error']({
+            message: 'MCS',
+            description:
+                `An Error Fetching Users .`,
+            });
+
+            this.setState({isloading:false})
+            console.log(error);
+
+        });
     }
 
     getTaskStatus = (status)=>{
         let badge ={}
-        if(status=="COMPLETED"){
-            badge = {clazz:"badge badge-success", display:"COMPLETED"}
+        if(status=="DONE"){
+            badge = {clazz:"badge badge-success", display:"DONE"}
         }
         else if(status=="PENDING"){
             badge = {clazz:"badge badge-info", display:"PENDING"}
         }
-        else if(status=="STARTED"){
-            badge = {clazz:"badge badge-primary", display:"STARTED"}
+        else if(status=="CREATED"){
+            badge = {clazz:"badge badge-primary", display:"CREATED"}
         }
         else if(status=="CANCELLED"){
             badge = {clazz:"badge badge-danger", display:"CANCELLED"}
+        } else if(status == 'STARTED'){
+            badge = {clazz:"badge badge-primary", display:"STARTED"}
         }
         return (
             <span className={badge.clazz}>
@@ -65,6 +97,16 @@ class TasksPage extends Component  {
         );
     }
 
+    getUserAction = (record) =>{
+        if(hasAuthority([CAN_UPDATE_TASK])){
+            return (
+                <span>
+                    <Divider type="vertical" />
+                    <button onClick={(e)=>{this.editTaskModal(record);}} type="button" class="btn btn-primary btn-sm">View User Task</button>
+                </span>
+            )
+        }
+    }
     getTableHeader = ()=>{
 
         const columns = [
@@ -75,37 +117,33 @@ class TasksPage extends Component  {
             },
             {
                 title: 'Description',
-                dataIndex: 'description',
-                key: 'description',
+                dataIndex: 'context',
+                key: 'context',
             },
             {
                 title: 'CurrentStatus',
-                dataIndex: 'status',
-                key: 'status',
-                render: status => (
+                dataIndex: 'state',
+                key: 'state',
+                render: state => (
                     <span>
-                        {this.getTaskStatus(status)}
+                        {this.getTaskStatus(state)}
                     </span>
                   ),
             },
             {
                 title: 'Date completed',
-                dataIndex: 'completionDate',
-                key: 'completionDate',
+                dataIndex: 'dateOfComplite',
+                key: 'dateOfComplite',
             },
             {
-                title: 'Updated Status',
-                dataIndex: 'updatedStatus',
-                key: 'updatedStatus',
-                render: status => (
-                                    <Select style={{ width: 120 }}>
-                                          <Option value="COMPLETED" >Completed</Option>
-                                          <Option value="PENDING" >Pending</Option>
-                                          <Option value="STARTED" >Started</Option>
-                                          <Option value="CANCELLED">Cancelled</Option>
-                                    </Select>
-                                  ),
-            }
+                title: 'Action',
+                dataIndex: 'action',
+                key: 'action',
+                render: (text,record) =>
+                    (
+                        <span>{this.getUserAction(record)}</span>
+                    )
+              },
           ];
 
         return columns
@@ -145,12 +183,25 @@ class TasksPage extends Component  {
     }
 
     createTask = () => {
-        // createTask()
-        // .then
+        createTask(this.state.task)
+        .then(response=>{
+            notification['success']({
+                 message: 'MCS',
+                 description:'Task Created Successfully',
+            });
+            this.setState({isloading:false, viewTaskModal: false})
+            this.getAllTask();
+       }).catch((error)=> {
+            this.setState({isloading:false})
+            notification['error']({
+            message: 'MCS',
+            description: `Error Creating Task.`,
+         });
+     });
     }
 
     cancelCreateTaskModal = () => {
-        this.setState({visible:false})
+        this.setState({viewTaskModal:false})
     }
 
     searchTaskByParameters = (e) =>{
@@ -159,7 +210,41 @@ class TasksPage extends Component  {
     }
 
     viewTaskModal =()=>{
-        this.setState({visible:true, taskViewType: 'Create'})
+        this.setState({viewTaskModal:true, taskViewType: 'Create'})
+    }
+
+    editTaskModal = (record) => {
+        this.setState({viewTaskModal : true, taskViewType : 'Update', task : record})
+    }
+
+    showManagerOption = () => {
+        if(!this.state.user.role ) return;
+        if(this.state.user.role.name.indexOf('HOD')> -1){
+            this.state.task.hodName = this.state.user.userName;
+            return (
+                <FormItem
+                >
+                    <Select 
+                        value={this.state.task.managerName} 
+                        style={{ width: 120 }}
+                        onChange = {(e)=>this.setState({task : {...this.state.task, managerName : e}})}
+                        placeholder= "Select a Manager to assign task"
+                    >
+                    {this.allManagers()}
+                    </Select>
+                </FormItem>
+            )
+        }else {
+            this.state.task.managerName = this.state.user.userName;
+            this.state.task.hodName = "";
+        }
+    }
+    allManagers = () => {
+        return (
+            this.state.managers.map((item)=>
+                <Option value={item.userName}>{item.userName}</Option>
+            )
+        );
     }
   render(){
     const bodystyle =  {
@@ -181,7 +266,7 @@ class TasksPage extends Component  {
 
             <div  class="right-panel ">
                 <Header></Header>
-                <BreadCrumb menu="User" submenu=" "></BreadCrumb>
+                <BreadCrumb menu="Tasks" submenu=" "></BreadCrumb>
 
                 <div class="content mt-3">
 
@@ -194,41 +279,55 @@ class TasksPage extends Component  {
                                             size="large"
                                             name="name"
                                             autoComplete="off"
-                                            placeholder="Task Name name"
-                                            value={this.state.name.value}
+                                            placeholder="Name"
+                                            value={this.state.searchParameters.name}
+                                            onChange = {(e)=>this.setState({searchParameters : {...this.state.searchParameters, name : e.target.value}})}
+                                            
                                           />
                                     </FormItem>
 
                                     <FormItem>
                                         <Input
                                             size="large"
-                                            name="amount"
                                             autoComplete="off"
                                             placeholder="Description"
-                                            value={this.state.description.value}
+                                            value={this.state.searchParameters.description}
+                                            onChange = {(e)=>this.setState({searchParameters : {...this.state.searchParameters, description : e.target.value}})}
+                
                                            />
                                     </FormItem>
 
                                     <FormItem
                                        >
-                                        <Select firstActiveValue="COMPLETED" style={{ width: 120 }} onChange={this.handleChange}>
-                                            <Option value="COMPLETED">Completed</Option>
+                                        <Select firstActiveValue="DONE" style={{ width: 120 }} 
+                                            onChange = {(e)=>this.setState({searchParameters : {...this.state.searchParameters, state : e}})}
+                                        >
+                                            <Option value="DONE">Completed</Option>
                                             <Option value="PENDING">Pending</Option>
                                             <Option value="STARTED">Started</Option>
                                             <Option value="CANCELLED">Cancelled</Option>
+                                            <Option value="ALL">All</Option>
 
                                         </Select>
                                     </FormItem>
-
                                     <FormItem>
                                         <DatePicker
-                                            value={this.state.completionDate.value}
+                                            placeholder= 'Choose a start date'
+                                            value={this.state.searchParameters.startDate}
+                                            onChange = {(e)=>this.setState({searchParameters : {...this.state.searchParameters, startDate : e}})}
                                             />
                                     </FormItem>
-
+                                    <FormItem>
+                                        <DatePicker
+                                            placeholder= 'Choose an end date'
+                                            value={this.state.searchParameters.completionDate}
+                                            onChange = {(e)=>this.setState({searchParameters : {...this.state.searchParameters, completionDate : e}})}
+                                            />
+                                    </FormItem>
+                                    {this.showManagerOption()}
                                     <FormItem>
                                       <Button type="primary" icon="search">
-                                            Looking
+                                            Search
                                       </Button>
                                     </FormItem>
 
@@ -258,7 +357,7 @@ class TasksPage extends Component  {
                             <div className="col-md-12">
                                 <Modal
                                     title={this.state.taskViewType + ' Task'}
-                                    visible={this.state.visible}
+                                    visible={this.state.viewTaskModal}
                                     onOk={this.createTask}
                                     // okButtonProps={{ disabled: this.isFormInvalid() }}
                                     onCancel={this.cancelCreateTaskModal}
@@ -276,37 +375,21 @@ class TasksPage extends Component  {
                                             name="name"
                                             autoComplete="off"
                                             placeholder="Task Name name"
-                                            value={this.state.name.value}
-                                            onChange={(event) => this.handleInputChange(event, this.validateInput)}/>
+                                            value={this.state.task.name}
+                                            onChange={(e) => this.setState({task : {...this.state.task, name: e.target.value}})}/>
                                     </FormItem>
 
                                     <FormItem
-                                        // label="Amount"
-                                        // validateStatus={this.state.amount.validateStatus}
-                                        // help={this.state.amount.errorMsg}
+                                
                                         >
                                         <Input
                                             size="large"
                                             name="amount"
                                             autoComplete="off"
-                                            placeholder="Description"
-                                            value={this.state.description.value}
-                                            onChange={(event) => this.handleInputChange(event, this.validateInput)}/>
+                                            placeholder="Context"
+                                            value={this.state.task.context}
+                                            onChange={(e) => this.setState({task : {...this.state.task, context: e.target.value }})}/>
                                     </FormItem>
-
-                                    <FormItem
-                                        // label="Alias"
-                                        // validateStatus={this.state.alias.validateStatus}
-                                        // help={this.state.alias.errorMsg}
-                                        >
-                                        <Select defaultValue="lucy" style={{ width: 120 }} onChange={this.handleChange}>
-                                        <Option value="COMPLETED">Completemmd</Option>
-                                            <Option value="PENDING">Pending</Option>
-                                            <Option value="STARTED">Started</Option>
-                                            <Option value="CANCELLED">Cancelled</Option>
-                                        </Select>
-                                    </FormItem>
-
                                     <FormItem
                                         >
                                         <DatePicker
@@ -314,21 +397,15 @@ class TasksPage extends Component  {
                                             name="Target Date"
                                             autoComplete="off"
                                             placeholder="completion Date"
-                                            value={this.state.completionDate.value}
-                                            onChange={(event) => this.handleInputChange(event, this.validateInput)}/>
+                                            value={this.state.task.dateOfComplite}
+                                            onChange={(e) => this.setState({task : {...this.state.task, dateOfComplite : e}})}/>
                                     </FormItem>
 
-                                                {/* <FormItem>
-                                                    <Button type="primary"
-                                                            htmlType="submit"
-                                                            size="large"
-                                                            className="signup-form-button"
-                                                            disabled={this.isFormInvalid()}>Update</Button>
-                                                </FormItem> */}
-                                            </Form>
+                                    {this.showManagerOption()}
+                                </Form>
                                         </div>
 
-                                    </Modal>
+                            </Modal>
                             </div>
 
 

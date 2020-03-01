@@ -1,21 +1,35 @@
-import {API_BASE_URL, APP_CLIENT, APP_PASS, PAGE_SIZE, CLIENT_TOKEN,GETMETHOD,POSTMETHOD,PUTMETHOD} from '../../constants';
-import {axiosRequest,storeJwtAccessToken,storeJwtExpireToken} from  '../../utils/api-utils'
+import {USER,API_BASE_URL, APP_CLIENT, APP_PASS, PAGE_SIZE, CLIENT_TOKEN,GETMETHOD,POSTMETHOD,PUTMETHOD, USERID} from '../../constants';
+import {axiosRequest} from  '../../utils/api-utils'
 import axios from 'axios';
+import { stateManager } from '../../utils/state-utils';
 
 
 
-export function getAllTasksByUserId(userId) {
+export function getTasksForReport(username) {
     return axiosRequest({
-        url: API_BASE_URL + '/tasks/get-all-tasks-by-user-id/'+ userId,
+        url: API_BASE_URL + '/api/tasks/get-all-tasks-for-report-by-user-name/'+ username,
         method: GETMETHOD,
         userAccessToken: true,
         headerType: 'application/json'
     });
 }
 
-export const storeToken= (token) =>{
-    storeJwtAccessToken(token.access_token);
-    storeJwtExpireToken(token.expires_in)
+export function getTaskSubmittedForReportByUserId(userId) {
+    return axiosRequest({
+        url: API_BASE_URL + '/api/tasks/get-all-tasks-by-user-id/'+ userId,
+        method: GETMETHOD,
+        userAccessToken: true,
+        headerType: 'application/json'
+    });
 }
 
+export function submitReport (userId,tasks){
+    return axiosRequest({
+        url: API_BASE_URL + '/api/tasks/submitweeklyReportByUserId/'+ userId,
+        method: POSTMETHOD,
+        data : tasks,
+        userAccessToken: true,
+        headerType: 'application/json'
+    });
+}
 

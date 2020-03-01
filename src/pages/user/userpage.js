@@ -3,9 +3,11 @@ import React, { Component } from 'react';
 import Header from '../../partials/header';
 import Navbar from '../../partials/navbar'
 import BreadCrumb from '../../partials/breadcrumb'
-import {fetchAllUsers,unBlockUser,blockUser, saveUser} from './user-api'
+
+import {createTask} from '../tasks/dashboard-api'
+import {fetchAllUsers,unBlockUser,blockUser, saveUser, getAllDepartments, getTaskByUserId} from './user-api'
 import {hasAuthority} from  '../../utils/api-utils'
-import {CAN_CREATE_USER, CAN_UPDATE_USER, CAN_VIEW_USER} from '../../constants'
+import {CAN_CREATE_USER, CAN_UPDATE_USER, CAN_VIEW_USER, CAN_UPDATE_TASK} from '../../constants'
 
 import {
     Form,
@@ -20,8 +22,10 @@ import {
     Spin,
     notification,Popconfirm,Table, Divider, Tag
   } from 'antd';
+import { resetPassword } from '../settings/settings-api';
 
 const FormItem = Form.Item;
+const Label = Form.Label;
 const { Option } = Select;
 class UserPage extends Component  {
     constructor(props) {
@@ -30,9 +34,16 @@ class UserPage extends Component  {
             users:[],
             isloading:true,
             viewUserType: '',
+            userTableVisible : true,
+            viewTaskModal: false,
+            userTaskVisible : false,
+            taskViewType: '',
+            task : {},
             userModalVisible: false,
-            managers : [{userName : 'Positive', firstName : 'Akeem', lastName : 'Suara'}],
-            user : {role: {name : 'ADMIN'}, managerName : ''}
+            departments : [{value : 'IT', label : 'IT', lastName : 'Suara'}],
+            user : {role: 'ADMIN', managerName : ''},
+            userIdInView: '',
+            userNameInView : ''
         }
             // this.onsubmitDrug = this.onsubmitDrug.bind(this);
             this.unblockUzer = this.unblockUzer.bind(this);
@@ -41,14 +52,17 @@ class UserPage extends Component  {
 
     componentDidMount(){
         this.getAllUsers()
+        this.getAllDepartments()
     }
 
-    // <span class="badge badge-primary">Primary</span>
-    //                                 <span class="badge badge-secondary">Secondary</span>
-    //                                 <span class="badge badge-success">Success</span>
-    //                                 <span class="badge badge-danger">Danger</span>
-
-
+    getAllDepartments = () => {
+        getAllDepartments()
+        .then((response)=> {
+            this.setState({departments : response.data});
+        }).catch((error) =>{
+            console.log('An error occured while getting all departments');
+        });
+    }
 
     getAccontLockedInfo = (block)=>{
         let badge = {clazz:"badge badge-info", display:"Active"}
@@ -66,6 +80,16 @@ class UserPage extends Component  {
         this.setState({userModalVisible: true, user : {...user, role : user.role.name}, viewUserType : 'Update'});
     }
 
+    getUserTaskAction = (record) =>{
+        if(hasAuthority([CAN_UPDATE_TASK])){
+            return (
+                <span>
+                    <Divider type="vertical" />
+                    <button onClick={(e)=>{this.editTaskModal(record);}} type="button" class="btn btn-primary btn-sm">View User Task</button>
+                </span>
+            )
+        }
+    }
 
     getUserAction = (record) =>{
         if(hasAuthority(['can_view_user_task'])){
@@ -85,6 +109,49 @@ class UserPage extends Component  {
                </span>
             )
         }
+
+        if(hasAuthority([CAN_UPDATE_TASK]) && record.submittedWeeklyReport){
+            return (
+                <span>
+                    <Divider type="vertical" />
+                    <button onClick={(e)=>{ this.showWeeklyReport(record.id, record.userName)}} type="button" class="btn btn-primary btn-sm">View Weekly Report</button>
+               </span>
+            )
+        }
+    }
+
+    getTaskStatus = (status)=>{
+        let badge ={}
+        if(status=="COMPLETED"){
+            badge = {clazz:"badge badge-success", display:"COMPLETED"}
+        }
+        else if(status=="PENDING"){
+            badge = {clazz:"badge badge-info", display:"PENDING"}
+        }
+        else if(status=="STARTED"){
+            badge = {clazz:"badge badge-primary", display:"STARTED"}
+        }
+        else if(status=="CANCELLED"){
+            badge = {clazz:"badge badge-danger", display:"CANCELLED"}
+        } else if(status=="CREATED"){
+            badge = {clazz:"badge badge-primary", display:"CREATED"}
+        }
+        return (
+            <span className={badge.clazz}>
+                {badge.display}
+            </span>
+        );
+    }
+
+
+    showWeeklyReport = (userId, userName) => {
+        this.state = {...this.state, userIdInView : userId, userNameInView : userName};
+        getTaskByUserId(userId)
+        .then(response => {
+            this.setState({userTableVisible: false,userTaskVisible : true, userTasks : response.data});
+        }).catch(error=> {
+
+        })
     }
 
     unblockUzer = (email) =>{
@@ -133,7 +200,53 @@ class UserPage extends Component  {
         });
     }
 
-    getTableHeader = ()=>{
+    editTaskModal = (record) => {
+        this.setState({viewTaskModal : true, taskViewType : 'Update', task : record})
+    }
+
+    getTableHeaderTask = ()=>{
+        
+                const columns = [
+                    {
+                      title: 'Name',
+                      dataIndex: 'name',
+                      key: 'name',
+                    },
+                    {
+                        title: 'Description',
+                        dataIndex: 'context',
+                        key: 'context',
+                    },
+                    {
+                        title: 'CurrentStatus',
+                        dataIndex: 'state',
+                        key: 'state',
+                        render: state => (
+                            <span>
+                                {this.getTaskStatus(state)}
+                            </span>
+                          ),
+                    },
+                    {
+                        title: 'Date completed',
+                        dataIndex: 'dateOfComplite',
+                        key: 'dateOfComplite',
+                    },
+                    {
+                        title: 'Action',
+                        dataIndex: 'action',
+                        key: 'action',
+                        render: (text,record) =>
+                            (
+                                <span>{this.getUserTaskAction(record)}</span>
+                            )
+                      },
+                  ];
+        
+                return columns
+            }
+
+    getTableHeaderUser = ()=>{
 
         const columns = [
             {
@@ -224,61 +337,11 @@ class UserPage extends Component  {
         });
     }
 
-    deleteDrug = (id)=>{
-        console.log( id)
-
-    }
-    cancelDrug = ()=>{
-
-    }
-
-    mapDrugTables = () =>{
-        let items = <tr style={{ width: '100%' }} className="col-md-12" >No drug</tr>
-
-        if (this.state.drugs) {
-
-            items = this.state.drugs.map(drug => {
-              return (
-                <tr key={drug.id}>
-                    <td>{drug.name}</td>
-                    <td>{drug.amount}</td>
-                    <td>{drug.alias}</td>
-                    <td>
-                    <Popconfirm
-                        title="Are you sure delete this Item?"
-                        onConfirm={(e)=>this.deleteDrug(drug)}
-                        onCancel={this.cancelDrug()}
-                        okText="Yes"
-                        cancelText="No"
-                    >
-                        <a href="#" style={{margin:'5px'}} >Delete</a>
-                        {/* <a style={{margin:'5px'}} type="button" class="btn btn-primary">Update</a>     */}
-                    </Popconfirm>
-                        <button type="button" class="btn btn-primary btn-sm">Delete</button>
-
-                            {/* <Button className='m-1' color="primary" size="xs"
-                                onClick={() => { this.setPublicationUpdate(item) }}>
-                                Update
-                            </Button> */}
-                            {/* <Button className='m-1' color="danger" size="xs"
-                                onClick={() => { this.deleteItem(item) }}>
-                                Delete
-                            </Button> */}
-                    </td>
-                </tr>
-              )
-            });
-        }
-
-        return items;
-
-    }
-
     updateUser = () => {
         saveUser(this.state.user)
         .then(response=>{
-            this.setState({users:response.data})
-            this.setState({isloading:false})
+            this.getAllUsers();
+            this.setState({isloading:false, userModalVisible: false})
         })
         .catch((error)=> {
             console.log("User Error Response");
@@ -296,8 +359,8 @@ class UserPage extends Component  {
     }
     allManagers = () => {
         return (
-            this.state.managers.map((item)=>
-                <Option value={item.userName}>{item.firstName + ' ' + item.lastName}</Option>
+            this.state.departments.map((item)=>
+                <Option value={item.value}>{item.value}</Option>
             )
         );
     }
@@ -316,11 +379,158 @@ class UserPage extends Component  {
         }
     }
 
+    showManagerOption = () => {
+        if(!this.state.user.role ) return;
+        if(this.state.user.role.indexOf('Manager')> -1){
+            return (
+                <FormItem
+                >
+                    <Select 
+                        value={this.state.user.department} 
+                        style={{ width: 120 }}
+                        onChange = {(e)=>this.setState({user : {...this.state.user, department : e}})}
+                        placeholder= "Select a Department"
+                    >
+                    {this.allManagers()}
+                    </Select>
+                </FormItem>
+            )
+        }else if(this.state.user.role.indexOf('HOD') > -1){
+            return (
+                <FormItem
+                >
+                <Input
+                    size="large"
+                    name="name"
+                    autoComplete="off"
+                    placeholder="Department"
+                    value={this.state.user.department}
+                    onChange = {(e)=>this.setState({user : {...this.state.user, department : e.target.value}})}
+                   />
+            </FormItem>
+            )
+        }
+    }
+
+    showUserTable = () => {
+        this.setState({userTableVisible: true, userTaskVisible: false});
+    }
+    showAppropriateTable = () =>{
+        if(this.state.userTableVisible)
+        {
+            return (
+            <div className="card">
+            <div className="card-header">
+                <strong className="card-title">Users</strong>
+                {this.createUserPreviledge()}
+            </div>
+            <div className="card-body">
+                <Table columns={this.getTableHeaderUser()} dataSource={this.state.users} />
+            </div>
+
+        </div>
+        )
+        } else if(this.state.userTaskVisible){
+            return (
+                <div className="card">
+                <div className="card-header">
+                    <strong className="card-title">Tasks</strong>
+                    <button onClick={this.showUserTable}>Users</button>
+                </div>
+                <div className="card-body">
+                    <Table columns={this.getTableHeaderTask()} dataSource={this.state.userTasks} />
+                </div>
+
+            </div>
+            )
+        }
+    }
+
+    showEditTaskModal = () => {
+        return (
+            <div className="col-md-12">
+            <Modal
+                title={this.state.taskViewType + ' Task'}
+                visible={this.state.viewTaskModal}
+                onOk={this.createTask}
+                // okButtonProps={{ disabled: this.isFormInvalid() }}
+                onCancel={this.cancelCreateTaskModal}
+                okText={this.state.taskViewType}
+                >
+                    <div className="row">
+                        <Form onSubmit={this.handleSubmit} className="signup-form">
+                        <FormItem
+                    // label="Name"
+                    // validateStatus={this.state.name.validateStatus}
+                    // help={this.state.name.errorMsg}
+                    >
+                    <Input
+                        size="large"
+                        name="name"
+                        autoComplete="off"
+                        placeholder="Task Name name"
+                        value={this.state.task.name}
+                        onChange={(e) => this.setState({task : {...this.state.task, name: e.target.value}})}/>
+                </FormItem>
+
+                <FormItem
+            
+                    >
+                    <Input
+                        size="large"
+                        name="amount"
+                        autoComplete="off"
+                        placeholder="Context"
+                        value={this.state.task.context}
+                        onChange={(e) => this.setState({task : {...this.state.task, context: e.target.value }})}/>
+                </FormItem>
+                <FormItem
+                    >
+                    <DatePicker
+                        size="large"
+                        name="Target Date"
+                        autoComplete="off"
+                        placeholder="completion Date"
+                        value={this.state.task.dateOfComplite}
+                        onChange={(e) => this.setState({task : {...this.state.task, dateOfComplite : e}})}/>
+                </FormItem>
+
+                {this.showManagerOption()}
+            </Form>
+                    </div>
+
+        </Modal> 
+        </div>
+        )
+    }
     handleUserChange = (e) => {
         console.log('Working yet?')
         this.setState({user : {...this.state.user, key : e.target.value}})
         console.log(this.state.user.userName)
     }
+
+    cancelCreateTaskModal = () => {
+        this.setState({viewTaskModal:false})
+    }
+
+    createTask = () => {
+        createTask(this.state.task)
+        .then(response=>{
+            notification['success']({
+                 message: 'MCS',
+                 description:'Task Created Successfully',
+            });
+            this.setState({isloading:false, viewTaskModal: false})
+            this.showWeeklyReport(this.state.userIdInView, this.state.userNameInView)
+       }).catch((error)=> {
+            this.setState({isloading:false})
+            notification['error']({
+            message: 'MCS',
+            description: `Error Creating Task.`,
+         });
+     });
+    }
+
   render() {
     const bodystyle =  {
         background: "#f1f2f7",
@@ -355,16 +565,7 @@ class UserPage extends Component  {
                             <div class="row">
 
                             <div className="col-md-12">
-                                <div className="card">
-                                    <div className="card-header">
-                                        <strong className="card-title">Users</strong>
-                                        {this.createUserPreviledge()}
-                                    </div>
-                                    <div className="card-body">
-                                        <Table columns={this.getTableHeader()} dataSource={this.state.users} />
-                                    </div>
-
-                                </div>
+                                {this.showAppropriateTable()}
                             </div>
 
                             <div className="col-md-12">
@@ -430,21 +631,16 @@ class UserPage extends Component  {
                                     </FormItem>
                                     <FormItem
                                         >
+
                                         <Select value= {this.state.user.role} style={{ width: 120 }} 
-                                        onChange = {(e)=>this.setState({user : {...this.state.user, role : e.target.value}})}>
+                                        onChange = {(e)=>this.setState({user : {...this.state.user, role : e}})}>
                                         <Option value="ADMIN">Admin</Option>
                                             <Option value="HOC">HOC</Option>
                                             <Option value="HOD">HOD</Option>
-                                            <Option value="MANAGER">Manager</Option>
+                                            <Option value="Manager">Manager</Option>
                                         </Select>
                                     </FormItem>
-                                        <FormItem
-                                        >
-                                            <Select value={this.state.user.managerName} style={{ width: 120 }} 
-                                                onChange = {(e)=>this.setState({user : {...this.state.user, managerName : e.target.value}})}>
-                                                {this.allManagers}
-                                            </Select>
-                                        </FormItem>
+                                        {this.showManagerOption()}
                                         <FormItem
                                         >
                                             <DatePicker
@@ -452,8 +648,8 @@ class UserPage extends Component  {
                                             name="Target Date"
                                             autoComplete="off"
                                             placeholder="Date of Birth"
-                                            value={this.state.user.birthday}
-                                            //onChange = {(e)=>this.setState({user : {...this.state.user, birthday : e.target.value}})}
+                                            value={this.state.user.dateOfBirth}
+                                            onChange ={ (e)=> {this.setState({user : {...this.state.user, dateOfBirth : e}})}}
                                            />
                                         </FormItem>
                                             </Form>
@@ -461,6 +657,8 @@ class UserPage extends Component  {
                                     </Modal>
                                 </div>
                             </div>
+
+                            {this.showEditTaskModal()}
                         </Spin>
                     </div>
                 </div>

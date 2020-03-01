@@ -1,11 +1,11 @@
 import {API_BASE_URL, APP_CLIENT, APP_PASS, PAGE_SIZE, CLIENT_TOKEN,GETMETHOD,POSTMETHOD,PUTMETHOD, USER, USERID} from '../../constants';
 import {axiosRequest} from  '../../utils/api-utils'
-import {state} from '../../utils/state-utils'
+import {stateManager} from '../../utils/state-utils'
 import axios from 'axios';
 
 export function getTaskByUserId() {
      return axiosRequest({
-        url: API_BASE_URL + '/api/tasks/getTaskByUserId/'+ 2,//state(USERID)  ,
+        url: API_BASE_URL + '/api/tasks/getTaskByUserId/'+ stateManager(USERID)  ,
         method: GETMETHOD,
         userAccessToken:true,
         headerType: 'application/json'
@@ -14,7 +14,7 @@ export function getTaskByUserId() {
 
 export function submitWeeklyReport(data){
     return axiosRequest({
-         url: API_BASE_URL + '/api/tasks/submitweeklyReportByUserId/'+ state(USERID)  ,
+         url: API_BASE_URL + '/api/tasks/submitweeklyReportByUserId/'+ stateManager(USERID)  ,
          method: POSTMETHOD,
          data : data,
          userAccessToken:true,

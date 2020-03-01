@@ -6,16 +6,42 @@ import {
     Link,
     Redirect,
   } from "react-router-dom";
+import { stateManager } from '../utils/state-utils';
+import {USER} from '../constants'
 
 class Header extends Component  {
     constructor(props) {
         super(props);
         this.onSubmitExperience = this.onSubmitExperience.bind(this);
+        this.state = {
+            user : null
+        }
+    }
 
+    componentDidMount(){
+    
     }
 
     onSubmitExperience = (e) => {
         e.preventDefault();
+    }
+
+    setRoute=(path)=>{
+        this.setState({redirectMe: {
+                status:true,
+                path:`/${path}`
+            }
+        })
+    }
+
+    seeWeeklyReportPriviledge = () => {
+        this.state.user = JSON.parse(stateManager(USER))
+        //this.setState({user : JSON.parse(stateManager(USER))})
+        if(this.state.user && this.state.user.role.name.indexOf('Manager')> -1 ){//&& !this.state.user.submittedWeeklyReport){
+            return (
+                <Link to={`/weekly-report`}><i className="fa fa-card"></i>Submit Reports</Link>
+            )
+        }
     }
 
   render() {
@@ -26,22 +52,13 @@ class Header extends Component  {
 
                 <div class="navbar-header">
                     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#main-menu" aria-controls="main-menu" aria-expanded="false" aria-label="Toggle navigation">
-                        <i class="fa fa-bars"></i>
+                        <i className="fa fa-bars"></i>
                     </button>
-                    <a class="navbar-brand" href="./"><h5>TR-BOARD</h5></a>
-                    <a class="navbar-brand hidden" href="./">TR</a>
+                    <a class="navbar-brand" href="./"><h5>MCS BOARD</h5></a>
                 </div>
 
                 <div id="main-menu" class="main-menu collapse navbar-collapse">
                     <ul class="nav navbar-nav">
-                        
-                            {/* <li class="active">
-                                <Link to={`/dashboard`} ><i className="menu-icon fa fa-dashboard"></i>Dashboard</Link>
-                            </li> */}
-                            
-                       
-                           
-                            <h3 class="menu-title">User</h3>
                            
                         
                                  {/* <!-- /.menu-title --> */}
@@ -51,7 +68,7 @@ class Header extends Component  {
                                     <li>
                                         <Link to={`/tasks`} ><i className="fa fa-puzzle-piece"></i>Task</Link>
                                         <Link to={`/users`}><i className="fa fa-people"></i>Users</Link>
-                                        <Link to={`/weekly-report`}><i className="fa fa-card"></i>Reports</Link>
+                                        {this.seeWeeklyReportPriviledge()}
                                     </li>
                                     {/* <li><i class="fa fa-puzzle-piece"></i><a href="ui-buttons.html">Buttons</a></li>
                                     <li><i class="fa fa-id-badge"></i><a href="ui-badges.html">Badges</a></li>

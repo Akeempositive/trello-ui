@@ -2,10 +2,7 @@ import React, { Component } from 'react';
 import Header from '../../partials/header';
 import Navbar from '../../partials/navbar'
 import BreadCrumb from '../../partials/breadcrumb'
-import {fetchAllUsers,unBlockUser,blockUser} from './index-api'
-import{tasks} from '../tasks/dashboard-datasource'
-// import {hasAuthority} from  '../../utils/api-utils'
-
+import {getTasksForReport,submitReport} from './index-api'
 import {
     Form,
     Input,
@@ -14,11 +11,14 @@ import {
     Modal,
     Select,
     Button,
+    DatePicker,
     Row,
     Col,
     Spin,
     notification,Popconfirm,Table, Divider, Tag
   } from 'antd';
+import { stateManager } from '../../utils/state-utils';
+import { USER } from '../../constants/index';
 
 const FormItem = Form.Item;
 const { Option } = Select;
@@ -27,18 +27,46 @@ class WeeklyReportPage extends Component  {
         super(props);
         this.state={
             tasks:[],
-            name:"",
-            description:"",
-            status:"",
-            completionDate:"",
+            task : {},
+            user : {},
+            reportNumber : 0,
+            noValidTaskForReport: false,
+            viewTaskModal: true,
             isloading:true
         }
-            // this.onsubmitDrug = this.onsubmitDrug.bind(this);
-
     }
 
+    nextTask = () => {
+
+        this.state.tasks[this.state.reportNumber] = this.state.task;
+        if(this.state.reportNumber == this.state.tasks.length -1) {
+            notification['success']({
+                message: 'MCS',
+                description:
+                    `This is the last report on the list.`,
+                });
+            return;
+        }
+        
+        this.setState({task : this.state.tasks[this.state.reportNumber+1], reportNumber : this.state.reportNumber +1});
+    }
+
+    previousTask = () => {
+        this.state.tasks[this.state.reportNumber] = this.state.task;
+        if(this.state.reportNumber == 0) {
+            notification['success']({
+                message: 'MCS',
+                description:
+                    `This is the first report on the list.`,
+                });
+            return;
+        }
+        
+        this.setState ({task : this.state.tasks[this.state.reportNumber-1], reportNumber : this.state.reportNumber -1});
+    }
     componentDidMount(){
-        this.getAllTask()
+        this.state.user = JSON.parse(stateManager(USER));
+        this.getAllTask();
     }
 
     getTaskStatus = (status)=>{
@@ -54,58 +82,14 @@ class WeeklyReportPage extends Component  {
         }
         else if(status=="CANCELLED"){
             badge = {clazz:"badge badge-danger", display:"CANCELLED"}
+        } else if(status=="CREATED"){
+            badge = {clazz:"badge badge-primary", display:"CREATED"}
         }
         return (
             <span className={badge.clazz}>
                 {badge.display}
             </span>
         );
-    }
-
-    getTableHeader = ()=>{
-
-        const columns = [
-            {
-              title: 'Name',
-              dataIndex: 'name',
-              key: 'name',
-            },
-            {
-                title: 'Description',
-                dataIndex: 'description',
-                key: 'description',
-            },
-            {
-                title: 'CurrentStatus',
-                dataIndex: 'status',
-                key: 'status',
-                render: status => (
-                    <span>
-                        {this.getTaskStatus(status)}
-                    </span>
-                  ),
-            },
-            {
-                title: 'Date completed',
-                dataIndex: 'completionDate',
-                key: 'completionDate',
-            },
-            {
-                title: 'Updated Status',
-                dataIndex: 'updatedStatus',
-                key: 'updatedStatus',
-                render: status => (
-                                    <Select style={{ width: 120 }}>
-                                          <Option value="COMPLETED" >Completed</Option>
-                                          <Option value="PENDING" >Pending</Option>
-                                          <Option value="STARTED" >Started</Option>
-                                          <Option value="CANCELLED">Cancelled</Option>
-                                    </Select>
-                                  ),
-            }
-          ];
-
-        return columns
     }
 
 
@@ -115,24 +99,99 @@ class WeeklyReportPage extends Component  {
 
     getAllTask = () =>{
         this.setState({isloading:true})
-        this.setState({tasks:tasks});
+        getTasksForReport(this.state.user.userName)
+        .then((response)=>{
+            if(response.data.length == 0){
+                this.setState({noValidTaskForReport : true})
+                return;
+            }
+            this.setState({tasks : response.data, reportNumber : 0, task : response.data[0]})
+        }).catch((error)=>{
+            console.log('There is an error fetching all task due for reports')
+        })
         this.setState({isloading:false})
     }
 
-    cancelDrugModal =(drug)=>{
-        this.setState({visible:false})
+    submitReports = () => {
+        this.state.tasks[this.state.reportNumber] = this.state.task;
+        submitReport(this.state.user.id, this.state.tasks)
+        .then (response =>{
+            notification['success']({
+                message: 'MCS',
+                description:
+                    `Successfully submitted report for the week.`,
+                });
+        }).catch(error => {
+
+        })
     }
 
-    viewTaskModal =()=>{
-        // this.setState({drug})
-        // this.setState({name:{value: drug.name, validateStatus:'success'}})
-        // this.setState({amount:{value: drug.amount, validateStatus:'success'}})
-        // this.setState({alias:{value: drug.alias, validateStatus:'success'}})
-        this.setState({visible:true})
+    showReportFilling = () => {
+        if(this.state.noValidTaskForReport){
+            return (
+                <Form onSubmit={this.handleSubmit} className="signup-form"
+                >
+                <FormItem
+                >
+                    <Input
+                        size="large"
+                        name="name"
+                        autoComplete="off"
+                        placeholder="Task Name name"
+                        value={this.state.task.name}
+                        onChange={(e) => this.setState({task : {...this.state.task, name: e.target.value}})}/>
+                </FormItem>
+
+                <FormItem
+            >
+                    <Input
+                        size="large"
+                        name="amount"
+                        autoComplete="off"
+                        placeholder="Context"
+                        value={this.state.task.context}
+                        onChange={(e) => this.setState({task : {...this.state.task, context: e.target.value }})}/>
+                </FormItem>
+                <FormItem
+                >
+                    <DatePicker
+                        size="large"
+                        name="Target Date"
+                        autoComplete="off"
+                        placeholder="completion Date"
+                        // value={this.state.task.dateOfComplite}
+                        onChange={(e) => this.setState({task : {...this.state.task, dateOfComplite : e}})}/>
+                </FormItem>
+
+                <FormItem
+           >
+            <Select value={this.state.task.state} style={{ width: 120 }} 
+                onChange = {(e)=>this.setState({task : {...this.state.task, state : e}})}
+            >
+                <Option value="DONE">Completed</Option>
+                <Option value="PENDING">Pending</Option>
+                <Option value="STARTED">Started</Option>
+                <Option value="CANCELLED">Cancelled</Option>
+                <Option value="ALL">All</Option>
+
+            </Select>
+        </FormItem>
+        <FormItem>
+            <button type="button" visible={this.state.reportNumber > 0} onClick = {this.previousTask} className="btn btn-primary btn-flat m-b-30 m-t-30 m-l-10 m-r-10">Previous</button>
+            <button type="button" onClick={this.nextTask} className="btn btn-info btn-flat m-b-30 m-t-30 m-l-10 m-r-10">Next</button>
+        </FormItem>
+        <FormItem>
+            <button type="button" onClick = {this.submitReports} className="btn btn-primary btn-flat m-b-30 m-t-30 m-l-10 m-r-10">Submit Report</button>
+
+         </FormItem>
+            </Form>
+            )
+        } else {
+            return (
+                <label>You currently have no task to give report on. Either wait for new task or for the updated ones to be reviewed</label>
+            )
+        }
     }
-
-
-
   render() {
     const bodystyle =  {
         background: "#f1f2f7",
@@ -143,220 +202,23 @@ class WeeklyReportPage extends Component  {
 
     return (
         <div style={bodystyle}>
-        {/* <!-- Left Panel --> */}
-
             <Navbar></Navbar>
-            {/* <!-- /#left-panel --> */}
-            {/* <!-- Left Panel --> */}
-
-            {/* <!-- Right Panel --> */}
-
             <div  class="right-panel ">
                 <Header></Header>
-                {/* <!-- /header --> */}
-                {/* <!-- Header--> */}
-
-                <BreadCrumb menu="User" submenu=" "></BreadCrumb>
+                <BreadCrumb menu="Reports" submenu=" "></BreadCrumb>
 
                 <div class="content mt-3">
 
                     <div class="animated fadeIn">
-                        <div className="row">
-                            <div className="col-md-12">
-                                <Form  layout="inline"onSubmit={this.handleSubmit} className="signup-form">
-                                    <FormItem
-                                        // label="Name"
-                                        // validateStatus={this.state.name.validateStatus}
-                                        // help={this.state.name.errorMsg}
-                                        >
-                                        <Input
-                                            size="large"
-                                            name="name"
-                                            autoComplete="off"
-                                            placeholder="Task Name name"
-                                            value={this.state.name.value}
-                                            onChange={(event) => this.handleInputChange(event, this.validateInput)}/>
-                                    </FormItem>
-
-                                    <FormItem
-                                        // label="Amount"
-                                        // validateStatus={this.state.amount.validateStatus}
-                                        // help={this.state.amount.errorMsg}
-                                        >
-                                        <Input
-                                            size="large"
-                                            name="amount"
-                                            autoComplete="off"
-                                            placeholder="Description"
-                                            value={this.state.description.value}
-                                            onChange={(event) => this.handleInputChange(event, this.validateInput)}/>
-                                    </FormItem>
-
-                                    <FormItem
-                                        // label="Alias"
-                                        // validateStatus={this.state.alias.validateStatus}
-                                        // help={this.state.alias.errorMsg}
-                                        >
-                                        <Select firstActiveValue="COMPLETED" style={{ width: 120 }} onChange={this.handleChange}>
-                                            <Option value="COMPLETED">Completed</Option>
-                                            <Option value="PENDING">Pending</Option>
-                                            <Option value="STARTED">Started</Option>
-                                            <Option value="CANCELLED">Cancelled</Option>
-
-                                        </Select>
-                                        {/* <Input
-                                            size="large"
-                                            name="alias"
-                                            autoComplete="off"
-                                            placeholder="status"
-                                            value={this.state.status.value}
-                                            onChange={(event) => this.handleInputChange(event, this.validateInput)}/> */}
-                                    </FormItem>
-
-                                    <FormItem
-                                        // label="Alias"
-                                        // validateStatus={this.state.alias.validateStatus}
-                                        // help={this.state.alias.errorMsg}
-                                        >
-                                        <Input
-                                            size="large"
-                                            name="Target Date"
-                                            autoComplete="off"
-                                            placeholder="completion Date"
-                                            value={this.state.completionDate.value}
-                                            onChange={(event) => this.handleInputChange(event, this.validateInput)}/>
-                                    </FormItem>
-
-                                    <FormItem>
-                                        <Button type="primary" icon="search">
-                                            Search
-                                        </Button>
-                                    </FormItem>
-
-                                </Form>
-                            </div>
-
-                        </div>
-                        <Spin spinning={this.state.isloading}>
-
-                            {/* Table for drugs */}
-                            <div class="row">
-
-
-                            <div className="col-md-12">
-                                <div className="card">
-                                    <div className="card-header">
-                                        <strong className="card-title">Tasks</strong>
-                                        <span className="pull-right">
-                                            <a onClick={()=>{this.viewTaskModal()}}><Icon type="plus-circle" /></a>
-                                        </span>
-                                    </div>
-                                    <div className="card-body">
-                                        <Table columns={this.getTableHeader()} dataSource={this.state.tasks} />
-                                    </div>
-
+                        <div className="col-md-12">
+                                <div className="row">
+                                    {this.showReportFilling()}    
                                 </div>
                             </div>
-
-                            <div className="col-md-12">
-                                <Modal
-                                    title="Create Task "
-                                    visible={this.state.visible}
-                                    onOk={this.updateDrug}
-                                    // okButtonProps={{ disabled: this.isFormInvalid() }}
-                                    onCancel={this.cancelDrugModal}
-                                    okText="UPDATE"
-                                    >
-                                        <div className="row">
-                                            <Form onSubmit={this.handleSubmit} className="signup-form">
-                                            <FormItem
-                                        // label="Name"
-                                        // validateStatus={this.state.name.validateStatus}
-                                        // help={this.state.name.errorMsg}
-                                        >
-                                        <Input
-                                            size="large"
-                                            name="name"
-                                            autoComplete="off"
-                                            placeholder="Task Name name"
-                                            value={this.state.name.value}
-                                            onChange={(event) => this.handleInputChange(event, this.validateInput)}/>
-                                    </FormItem>
-
-                                    <FormItem
-                                        // label="Amount"
-                                        // validateStatus={this.state.amount.validateStatus}
-                                        // help={this.state.amount.errorMsg}
-                                        >
-                                        <Input
-                                            size="large"
-                                            name="amount"
-                                            autoComplete="off"
-                                            placeholder="Description"
-                                            value={this.state.description.value}
-                                            onChange={(event) => this.handleInputChange(event, this.validateInput)}/>
-                                    </FormItem>
-
-                                    <FormItem
-                                        // label="Alias"
-                                        // validateStatus={this.state.alias.validateStatus}
-                                        // help={this.state.alias.errorMsg}
-                                        >
-                                        <Select defaultValue="lucy" style={{ width: 120 }} onChange={this.handleChange}>
-                                        <Option value="jack">Completemmd</Option>
-                                            <Option value="lucy">Pending</Option>
-                                            <Option value="Yiminghe">Started</Option>
-                                            <Option value="gjjjh">Cancelled</Option>
-                                        </Select>
-                                        {/* <Input
-                                            size="large"
-                                            name="alias"
-                                            autoComplete="off"
-                                            placeholder="status"
-                                            value={this.state.status.value}
-                                            onChange={(event) => this.handleInputChange(event, this.validateInput)}/> */}
-                                    </FormItem>
-
-                                    <FormItem
-                                        // label="Alias"
-                                        // validateStatus={this.state.alias.validateStatus}
-                                        // help={this.state.alias.errorMsg}
-                                        >
-                                        <Input
-                                            size="large"
-                                            name="Target Date"
-                                            autoComplete="off"
-                                            placeholder="completion Date"
-                                            value={this.state.completionDate.value}
-                                            onChange={(event) => this.handleInputChange(event, this.validateInput)}/>
-                                    </FormItem>
-
-                                                {/* <FormItem>
-                                                    <Button type="primary"
-                                                            htmlType="submit"
-                                                            size="large"
-                                                            className="signup-form-button"
-                                                            disabled={this.isFormInvalid()}>Update</Button>
-                                                </FormItem> */}
-                                            </Form>
-                                        </div>
-
-                                    </Modal>
-                            </div>
-
-
                         </div>
-
-                        </Spin>
-
                     </div>
                 </div>
-                {/* <!-- .content --> */}
             </div>
-            {/* <!-- /#right-panel --> */}
-
-            {/* <!-- Right Panel --> */}
-        </div>
     );
   }
 }

@@ -6,6 +6,7 @@ import Login from './pages/login/login';
 import Signup from './pages/signup/signup';
 import TaskPage from './pages/tasks/dashboard'
 import UserPage from './pages/user/userpage'
+import SettingPage from './pages/settings'
 import WeeklyReportPage from './pages/weekly-report';
 
 
@@ -27,18 +28,10 @@ class App extends Component {
 
             <HashRouter>
                 <Route exact path='/' component={Login} />
-                {/* <Route exact path='/sign-up' component={Signup} /> */}
                 <Route exact path='/tasks' component={TaskPage} />
                 <Route exact path='/weekly-report' component={WeeklyReportPage} />
                 <Route exact path="/users" component={UserPage} />
-
-                
-                {/* <ProtectedRoute exact path="/dashboard" component={Dashboard} /> */}
-                {/* <ProtectedRoute exact path="/drug" component={Drugpage} />
-                <ProtectedRoute exact path="/audit-trails" component={AuditTrailPage} />
-                <ProtectedRoute exact path="/users" component={UserPage} />
-                <ProtectedRoute exact path='/single-user/:userId' component={UserInfoPage} /> */}
-
+                <Route exact path="/settings" component={SettingPage} />
             </HashRouter>
 
         

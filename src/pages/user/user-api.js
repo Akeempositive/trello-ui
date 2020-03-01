@@ -1,7 +1,7 @@
 import {USERID, APP_ACCESS_TOKEN,API_BASE_URL,GETMETHOD,POSTMETHOD,PUTMETHOD,DELETEMETHOD} from '../../constants';
 import { notification} from 'antd';
 import {axiosRequest} from  '../../utils/api-utils'
-import {state} from '../../utils/state-utils'
+import {stateManager} from '../../utils/state-utils'
 
 
 
@@ -11,7 +11,7 @@ export const fetchAllUsers= async(form)=>{
     return axiosRequest({
         userAccessToken: true,
         headerType:`application/json`,
-        url: `${API_BASE_URL}/api/users/getAllVisibleUserById/` + state(USERID),
+        url: `${API_BASE_URL}/api/users/getAllVisibleUserById/` + stateManager(USERID),
         method: GETMETHOD
     })
 }
@@ -39,6 +39,15 @@ export const blockUser= async(email)=>{
     })
 }
 
+export function getTaskByUserId(userId) {
+    return axiosRequest({
+       url: API_BASE_URL + '/api/tasks/getTaskByUserId/'+ userId  ,
+       method: GETMETHOD,
+       userAccessToken:true,
+       headerType: 'application/json'
+   });
+}
+
 export const unBlockUser= async(email)=>{
     let form ={email:email}
     console.log("unBlockUser")    
@@ -51,3 +60,15 @@ export const unBlockUser= async(email)=>{
         method: PUTMETHOD
     })
 }
+
+export const getAllDepartments= async()=>{
+     return axiosRequest({
+        userAccessToken: true,
+        headerType:`application/json`,
+        headerTypeData:true,
+        url: `${API_BASE_URL}/api/users/getAllDepartments`,
+        method: GETMETHOD
+    })
+}
+
+

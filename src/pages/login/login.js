@@ -4,14 +4,7 @@ import { Redirect,Link } from 'react-router-dom';
 import {
     Form,
     Input,
-    // Tooltip,
     Icon,
-    // Cascader,
-    // Select,
-    // Row,
-    // Col,
-    // Checkbox,
-    // Button,
     Spin,
     notification
   } from 'antd';
@@ -201,9 +194,6 @@ class LoginForm extends Component  {
                                     <FormItem>
                                         <button type="submit" className="btn btn-primary btn-flat m-b-30 m-t-30">Login</button>
                                     </FormItem>                                        
-                                    <div className="register-link m-t-15 text-center">
-                                        <p>Don't have account ? <Link to={`/sign-up`} >Sign up</Link></p>
-                                    </div>
                                 </form>
                             </Spin>
                         </div>

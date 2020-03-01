@@ -39,10 +39,6 @@ import jwtDecode from "jwt-decode";
         options.headerRequest.data = {}
     }
 
-    console.log("options.headerRequest");
-
-    console.log(options.headerRequest);
-
     let apiRequest = null;
 
     switch (options.method) {
@@ -65,11 +61,6 @@ import jwtDecode from "jwt-decode";
         default:
           apiRequest = null;
     }
-
-    // console.log("apiRequest")
-
-    // console.log(apiRequest);
-
     checkifStatusIsForbidden(apiRequest);
 
     return apiRequest;
@@ -82,7 +73,6 @@ const checkifStatusIsForbidden = (response)=>{
         
     })
     .catch((error)=> {
-        console.log("checkifStatusIsForbidden");
         if(error.response && error.response.status && error.response.status== 403){
             let count=0;
             if(localStorage.getItem(FORBIDDEN_COUNT)){
@@ -91,15 +81,12 @@ const checkifStatusIsForbidden = (response)=>{
             count = count + 1
             localStorage.setItem(FORBIDDEN_COUNT, count)
         }
-        // localStorage.setItem()
-       // console.log(error.response.status || 'Not Available');
 
     });
 }
 
 const getBasicAuth = (username, password) => {
     const hash = new Buffer(username + ':' + password).toString('base64');
-    console.log(hash);
     return "Basic " + hash;
 };
 
@@ -119,13 +106,6 @@ export const axiosLoginRequest = options =>{
     }
 
     let basic = getBasicAuth(APP_CLIENT, APP_PASS)
-   // let head = {headers:{"Authorization": basic,'Content-Type': "application/x-www-form-urlencoded"}, data:{}}
-    // options.headerRequest = {headers:setHeader, data:{}}
-    // options.headerRequest.data = {}
-
-    console.log("options.headerRequest");
-
-    //console.log(head);
 
     let apiRequest= axios.post(options.url, options.data);
 
@@ -135,7 +115,7 @@ export const axiosLoginRequest = options =>{
 
 export const storeJwtAccessToken = (accessToken)=>{
     localStorage.setItem(USER_ACCESS_TOKEN, accessToken.token);
-    localStorage.setItem(USER, accessToken.user);
+    localStorage.setItem(USER, JSON.stringify(accessToken.user));
     localStorage.setItem(USERID, accessToken.user.id);
     localStorage.setItem(USER_AUTHORITIES,accessToken.authorities)
 }
@@ -147,20 +127,14 @@ export const storeJwtExpireToken = (tokenExpirationTime) =>{
 export const isUserAuthenticated = () =>{
     // let accessToken = localStorage.getItem(USER_ACCESS_TOKEN);
     if(localStorage.getItem(USER_ACCESS_TOKEN)==null){
-        console.log("false")
         return false
     }
     else if(localStorage.getItem(USER_ACCESS_TOKEN)){
         let startDate = localStorage.getItem(TOKEN_DATE);
         let endDate = Date.now();
         let timeExpiration = localStorage.getItem(USER_TOKEN_EXPIRATION);
-        console.log("TimeExpiration");
-        console.log(timeExpiration)
         let timeDifference = endDate-startDate;
         let timeDifferenceInSeconds = timeDifference/1000
-        console.log("TimeDifferenceInSeconds")
-        console.log(timeDifferenceInSeconds)
-
         if(timeDifferenceInSeconds > timeExpiration){
             return false;
         }
@@ -173,11 +147,7 @@ export const isUserAuthenticated = () =>{
 
 export const hasAuthority=(requiredAuthorities)=>{
     let assignedAuthority = localStorage.getItem(USER_AUTHORITIES)
-    // console.log("assignedAuthority")
-    // console.log(assignedAuthority)
     assignedAuthority = assignedAuthority.split(",");
-    // console.log("assignedAuthority in split format")
-    // console.log(assignedAuthority)
     let truthvalue = false;
     requiredAuthorities.forEach(authority => {
         if(assignedAuthority.includes(authority)){
