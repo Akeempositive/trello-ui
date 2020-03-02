@@ -37,7 +37,7 @@ class Header extends Component  {
     seeWeeklyReportPriviledge = () => {
         this.state.user = JSON.parse(stateManager(USER))
         //this.setState({user : JSON.parse(stateManager(USER))})
-        if(this.state.user && this.state.user.role.name.indexOf('Manager')> -1 ){//&& !this.state.user.submittedWeeklyReport){
+        if(this.state.user && this.state.user.submittedWeeklyReport && this.state.user.role.name.indexOf('Manager')> -1 ){//&& !this.state.user.submittedWeeklyReport){
             return (
                 <Link to={`/weekly-report`}><i className="fa fa-card"></i>Submit Reports</Link>
             )
