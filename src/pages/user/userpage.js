@@ -379,8 +379,19 @@ class UserPage extends Component  {
     updateUser = () => {
         saveUser(this.state.user)
         .then(response=>{
-            this.getAllUsers();
-            this.setState({isloading:false, userModalVisible: false})
+            response = response.data;
+            if(response.successful){
+                this.getAllUsers();
+                this.getAllDepartments();
+                this.setState({isloading:false, userModalVisible: false})
+            }else {
+                notification['error']({
+                    message: 'MCS',
+                    description:
+                        `An Error Creating/Updating User .` + response.message,
+                    });
+        
+            }
         })
         .catch((error)=> {
             console.log("User Error Response");
@@ -388,7 +399,7 @@ class UserPage extends Component  {
             notification['error']({
             message: 'MCS',
             description:
-                `An Error Fetching Users .`,
+                `An Error Creating/Updating User .`,
             });
 
             this.setState({isloading:false})
@@ -612,7 +623,7 @@ class UserPage extends Component  {
                                 <Modal
                                     title= {this.state.viewUserType + ' User'}
                                     visible={this.state.userModalVisible}
-                                    onOk={this.updateUser}
+                                    onOk={(e)=>this.updateUser()}
                                     // okButtonProps={{ disabled: this.isFormInvalid() }}
                                     onCancel={this.cancelUserTaskModal}
                                     okText={this.state.viewUserType}
