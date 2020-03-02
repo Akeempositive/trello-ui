@@ -4,8 +4,10 @@ import Header from '../../partials/header';
 import Navbar from '../../partials/navbar'
 import BreadCrumb from '../../partials/breadcrumb'
 
+import Moment from 'react-moment';
+import moment from 'moment';
 import {createTask} from '../tasks/dashboard-api'
-import {fetchAllUsers,unBlockUser,blockUser, saveUser, getAllDepartments, getTaskByUserId} from './user-api'
+import {fetchAllUsers,unBlockUser,blockUser, saveUser, getAllDepartments, getTaskByUserId, searchByFilter} from './user-api'
 import {hasAuthority} from  '../../utils/api-utils'
 import {CAN_CREATE_USER, CAN_UPDATE_USER, CAN_VIEW_USER, CAN_UPDATE_TASK} from '../../constants'
 
@@ -14,6 +16,7 @@ import {
     Input,
     Tooltip,
     Icon,
+    Button,
     Cascader,
     Select,
     Row,
@@ -39,6 +42,7 @@ class UserPage extends Component  {
             userTaskVisible : false,
             taskViewType: '',
             task : {},
+            userSearchParameters : {},
             userModalVisible: false,
             departments : [{value : 'IT', label : 'IT', lastName : 'Suara'}],
             user : {role: 'ADMIN', managerName : ''},
@@ -48,6 +52,27 @@ class UserPage extends Component  {
             // this.onsubmitDrug = this.onsubmitDrug.bind(this);
             this.unblockUzer = this.unblockUzer.bind(this);
 
+    }
+
+    searchByParametersForm = () => {
+        return (
+            <div className="col-md-12">
+            <Form  layout="inline" className="signup-form">
+                <FormItem>
+                    <Input
+                        size="large"
+                        autoComplete="off"
+                        placeholder="Seach By"
+                        value={this.state.userSearchParameters.userName}
+                        onChange = {(e)=>{
+                            this.state.userSearchParameters.userName = e.target.value;
+                            this.searchUsersByParameters();
+                        }}
+                       />
+                </FormItem>
+            </Form>
+        </div>
+        )
     }
 
     componentDidMount(){
@@ -231,6 +256,10 @@ class UserPage extends Component  {
                         title: 'Date completed',
                         dataIndex: 'dateOfComplite',
                         key: 'dateOfComplite',
+                        render : dateOfComplite => (
+                            <Moment parse="YYYY-MM-DD HH:mm">{new Date(dateOfComplite)}</Moment>
+                         
+                        )
                     },
                     {
                         title: 'Action',
@@ -308,7 +337,7 @@ class UserPage extends Component  {
                     firstName : '',
                     lastName : '',
                     managerUsername : '',
-                    dateOfBirth: new Date(),
+                    birthDay: new Date(),
                     chiefUserName : ''
                 },
                 userModalVisible: true
@@ -335,6 +364,16 @@ class UserPage extends Component  {
             console.log(error);
 
         });
+    }
+
+    searchUsersByParameters = () => {
+        searchByFilter(this.state.userSearchParameters)
+        .then (response => {
+            this.setState({users : response.data});
+        }).catch(error =>{
+
+        });
+
     }
 
     updateUser = () => {
@@ -420,6 +459,7 @@ class UserPage extends Component  {
         {
             return (
             <div className="card">
+            {this.searchByParametersForm()}
             <div className="card-header">
                 <strong className="card-title">Users</strong>
                 {this.createUserPreviledge()}
@@ -458,11 +498,9 @@ class UserPage extends Component  {
                 okText={this.state.taskViewType}
                 >
                     <div className="row">
-                        <Form onSubmit={this.handleSubmit} className="signup-form">
+                        <Form className="signup-form">
+                        <label>Task Name</label>
                         <FormItem
-                    // label="Name"
-                    // validateStatus={this.state.name.validateStatus}
-                    // help={this.state.name.errorMsg}
                     >
                     <Input
                         size="large"
@@ -476,6 +514,7 @@ class UserPage extends Component  {
                 <FormItem
             
                     >
+                    <label>Task Description</label>
                     <Input
                         size="large"
                         name="amount"
@@ -486,15 +525,16 @@ class UserPage extends Component  {
                 </FormItem>
                 <FormItem
                     >
+                    <label>Completion Date</label>
                     <DatePicker
                         size="large"
                         name="Target Date"
                         autoComplete="off"
                         placeholder="completion Date"
-                        value={this.state.task.dateOfComplite}
+                        value={moment(new Date(this.state.task.dateOfComplite), 'YYYY-MM-DD')}
                         onChange={(e) => this.setState({task : {...this.state.task, dateOfComplite : e}})}/>
                 </FormItem>
-
+                <label>Mannager Name</label>
                 {this.showManagerOption()}
             </Form>
                     </div>
@@ -578,7 +618,8 @@ class UserPage extends Component  {
                                     okText={this.state.viewUserType}
                                     >
                                         <div className="row">
-                                            <Form onSubmit={this.handleSubmit} className="signup-form">
+                                            <Form  className="signup-form">
+                                            <label>Username</label>
                                             <FormItem
                                         >
                                         <Input
@@ -592,6 +633,7 @@ class UserPage extends Component  {
                                             />
                                     </FormItem>
 
+                                    <label>Firstname</label>
                                     <FormItem
                                         >
                                         <Input
@@ -603,20 +645,20 @@ class UserPage extends Component  {
                                             onChange = {(e)=>this.setState({user : {...this.state.user, firstName : e.target.value}})}
                                             />
                                     </FormItem>
-
+                                    <label>Lastname</label>
                                     <FormItem
                                         >
                                         <Input
                                             size="large"
                                             name="name"
                                             autoComplete="off"
-                                            placeholder="Surname"
+                                            placeholder="Lastname"
                                             value={this.state.user.lastName}
                                             onChange = {(e)=>this.setState({user : {...this.state.user, lastName : e.target.value}})}
                                            />
                                     </FormItem>
 
-
+                                    <label>Email</label>
                                     <FormItem
                                        >
                                 
@@ -629,6 +671,7 @@ class UserPage extends Component  {
                                             value={this.state.user.email}
                                            />
                                     </FormItem>
+                                    <label>Role</label>
                                     <FormItem
                                         >
 
@@ -639,8 +682,11 @@ class UserPage extends Component  {
                                             <Option value="HOD">HOD</Option>
                                             <Option value="Manager">Manager</Option>
                                         </Select>
+                                        {/* <Label>Manager Name</Label> */}
                                     </FormItem>
+                                        
                                         {this.showManagerOption()}
+                                        <label>Birthday</label>
                                         <FormItem
                                         >
                                             <DatePicker
@@ -648,8 +694,8 @@ class UserPage extends Component  {
                                             name="Target Date"
                                             autoComplete="off"
                                             placeholder="Date of Birth"
-                                            value={this.state.user.dateOfBirth}
-                                            onChange ={ (e)=> {this.setState({user : {...this.state.user, dateOfBirth : e}})}}
+                                            value={moment(new Date(this.state.user.birthDay), 'YYYY-MM-DD')}
+                                            onChange ={ (e)=> {this.setState({user : {...this.state.user, birthDay : e}})}}
                                            />
                                         </FormItem>
                                             </Form>

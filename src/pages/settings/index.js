@@ -33,19 +33,21 @@ class SettingPage extends Component  {
                 description:
                     `Your new password does not match each other.`,
                 });
+                this.setState({isloading : false, resetPassword : {...resetPassword, newPassword : '', newPassword2 : ''}})
             return;
         }
         this.setState({isloading : true});
         this.state.resetPassword = {...this.state.resetPassword, userId : stateManager(USERID)}
         resetPassword(this.state.resetPassword)
         .then(response=> {
+            response = response.data;
             if(response.successful){
                 notification['success']({
                     message: 'MCS',
                     description:
                         `Your password is successfully changed.`,
                     });
-            }else if(response.message) {
+            }else if(response.message.length > 0) {
                 notification['error']({
                     message: 'MCS',
                     description:
@@ -63,21 +65,20 @@ class SettingPage extends Component  {
                         `There is an error changing your password.`,
                     });
             }
-            this.setState({isloading : false});
+            this.setState({isloading : false, resetPassword : {oldPassword : '', newPassword : '', newPassword2 : ''}})
         }).catch(error => {
             notification['error']({
                 message: 'MCS',
                 description:
                     `There is an error changing your password.`,
                 });
-                this.setState({isloading : false});
+                this.setState({isloading: false,resetPassword : {oldPassword : '', newPassword : '', newPassword2 : ''}})
         })
     }
     
     showResetPasswordPage = () => {
         return (
             <Spin spinning={this.state.isloading}>
-            <form onSubmit={this.onSubmitExperience}>
                 <div className="row">
                     <div className="col-md-12">
                         
@@ -119,9 +120,8 @@ class SettingPage extends Component  {
                     </div>
                 </div>
                 <FormItem>
-                    <button onClick={this.resetPassword} className="btn btn-primary btn-flat m-b-30 m-t-30">Reset Password</button>
-                </FormItem>                                        
-            </form>
+                    <button onClick={ (e)=>this.resetPassword()} className="btn btn-primary btn-flat m-b-30 m-t-30">Reset Password</button>
+                </FormItem>    
         </Spin>
         );
     }

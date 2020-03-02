@@ -31,3 +31,13 @@ export function createTask(task){
         headerType: 'application/json'
    })
 }
+
+export function searchTasksByFilter(task){
+    return axiosRequest({
+        url: API_BASE_URL + '/api/tasks/searchTasksByParameters/' + stateManager(USERID),
+        method: POSTMETHOD,
+        data : task,
+        userAccessToken:true,
+        headerType: 'application/json'
+   })
+}

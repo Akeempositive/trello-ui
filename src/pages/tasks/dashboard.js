@@ -3,10 +3,11 @@ import Header from '../../partials/header';
 import Navbar from '../../partials/navbar'
 import BreadCrumb from '../../partials/breadcrumb'
 import {tasks} from './dashboard-datasource'
-import {getTaskByUserId, createTask} from './dashboard-api'
+import {getTaskByUserId, createTask, searchTasksByFilter} from './dashboard-api'
 import {hasAuthority} from  '../../utils/api-utils'
 import {fetchAllUsers} from '../user/user-api'
-import {Moment} from 'moment'
+import Moment from 'react-moment';
+import moment from 'moment';
 import {stateManager} from '../../utils/state-utils'
 import {USER, CAN_UPDATE_TASK} from '../../constants'
 
@@ -36,10 +37,9 @@ class TasksPage extends Component  {
             task : {},
             managers : [],
             user : {},
-            searchParameters : {
+            taskSearchParameters : {
                 name : '',
-                description : '',
-                state : 'ALL',
+                context : 'ALL',
                 startDate :'',
                 completionDate : ''
             }
@@ -116,7 +116,7 @@ class TasksPage extends Component  {
               key: 'name',
             },
             {
-                title: 'Description',
+                title: 'Context',
                 dataIndex: 'context',
                 key: 'context',
             },
@@ -134,6 +134,10 @@ class TasksPage extends Component  {
                 title: 'Date completed',
                 dataIndex: 'dateOfComplite',
                 key: 'dateOfComplite',
+                render : dateOfComplite => (
+                    <Moment parse="YYYY-MM-DD HH:mm">{new Date(dateOfComplite)}</Moment>
+                 
+                )
             },
             {
                 title: 'Action',
@@ -204,9 +208,13 @@ class TasksPage extends Component  {
         this.setState({viewTaskModal:false})
     }
 
-    searchTaskByParameters = (e) =>{
-        e.preventDefault();
-        console.log('I m searching by parameter');
+    searchTaskByParameters = () =>{
+        searchTasksByFilter(this.state.taskSearchParameters)
+        .then(response => {
+            this.setState({tasks : response.data});
+        }).catch(error => {
+
+        })
     }
 
     viewTaskModal =()=>{
@@ -237,6 +245,18 @@ class TasksPage extends Component  {
         }else {
             this.state.task.managerName = this.state.user.userName;
             this.state.task.hodName = "";
+            return (
+            <FormItem
+            >
+                <Select 
+                    value={this.state.task.managerName} 
+                    style={{ width: 120 }}
+                    onChange = {(e)=>this.setState({task : {...this.state.task, managerName : e}})}
+                    placeholder= "Select a Manager to assign task"
+                >
+                {this.allManagers()}
+                </Select>
+            </FormItem>)
         }
     }
     allManagers = () => {
@@ -245,6 +265,65 @@ class TasksPage extends Component  {
                 <Option value={item.userName}>{item.userName}</Option>
             )
         );
+    }
+
+    searchByParametersForm = () => {
+        return (
+            <div className="col-md-12">
+            <Form  layout="inline" className="signup-form">
+                <FormItem>
+                   <Input
+                        size="large"
+                        name="name"
+                        autoComplete="off"
+                        placeholder="Name"
+                        value={this.state.taskSearchParameters.name}
+                        onChange = {(e)=>{
+                            this.state.taskSearchParameters.name = e.target.value;
+                            //this.setState({taskSearchParameters : {...this.state.taskSearchParameters, name : e.target.value}});
+                            this.searchTaskByParameters();
+                        }}
+                      />
+                </FormItem>
+                <FormItem
+                   >
+                    <Select value={this.state.taskSearchParameters.context} style={{ width: 120 }} 
+                         onChange = {(e)=>{
+                            this.state.taskSearchParameters.context = e;
+                            this.searchTaskByParameters();
+                        }}
+                    >
+                        <Option value="CREATED">CREATED</Option>
+                        <Option value="ONGOING">ONGOING</Option>
+                        <Option value="CANCELLED">CANCELLED</Option>
+                        <Option value="DONE">DONE</Option>
+                        <Option value="EXPIRED">EXPIRED</Option>
+                        <Option value="ALL">ALL</Option>
+
+                    </Select>
+                </FormItem>
+                <FormItem>
+                    <DatePicker
+                        placeholder= 'Choose a start date'
+                        value={this.state.taskSearchParameters.dateOfStart}
+                        onChange = {(e)=>{
+                            this.state.taskSearchParameters.dateOfStart = e;
+                            this.searchTaskByParameters();
+                        }}
+                        />
+                </FormItem>
+                <FormItem>
+                    <DatePicker
+                        placeholder= 'Choose an end date'
+                        value={this.state.taskSearchParameters.dateOfComplite}
+                        onChange = {(e)=>{
+                            this.state.taskSearchParameters.dateOfComplite = e;
+                            this.searchTaskByParameters();
+                        }}/>
+                </FormItem>
+            </Form>
+        </div>
+        )
     }
   render(){
     const bodystyle =  {
@@ -272,67 +351,7 @@ class TasksPage extends Component  {
 
                     <div class="animated fadeIn">
                         <div className="row">
-                            <div className="col-md-12">
-                                <Form  layout="inline" onSubmit={this.searchTaskByParameters} className="signup-form">
-                                    <FormItem>
-                                       <Input
-                                            size="large"
-                                            name="name"
-                                            autoComplete="off"
-                                            placeholder="Name"
-                                            value={this.state.searchParameters.name}
-                                            onChange = {(e)=>this.setState({searchParameters : {...this.state.searchParameters, name : e.target.value}})}
-                                            
-                                          />
-                                    </FormItem>
-
-                                    <FormItem>
-                                        <Input
-                                            size="large"
-                                            autoComplete="off"
-                                            placeholder="Description"
-                                            value={this.state.searchParameters.description}
-                                            onChange = {(e)=>this.setState({searchParameters : {...this.state.searchParameters, description : e.target.value}})}
-                
-                                           />
-                                    </FormItem>
-
-                                    <FormItem
-                                       >
-                                        <Select firstActiveValue="DONE" style={{ width: 120 }} 
-                                            onChange = {(e)=>this.setState({searchParameters : {...this.state.searchParameters, state : e}})}
-                                        >
-                                            <Option value="DONE">Completed</Option>
-                                            <Option value="PENDING">Pending</Option>
-                                            <Option value="STARTED">Started</Option>
-                                            <Option value="CANCELLED">Cancelled</Option>
-                                            <Option value="ALL">All</Option>
-
-                                        </Select>
-                                    </FormItem>
-                                    <FormItem>
-                                        <DatePicker
-                                            placeholder= 'Choose a start date'
-                                            value={this.state.searchParameters.startDate}
-                                            onChange = {(e)=>this.setState({searchParameters : {...this.state.searchParameters, startDate : e}})}
-                                            />
-                                    </FormItem>
-                                    <FormItem>
-                                        <DatePicker
-                                            placeholder= 'Choose an end date'
-                                            value={this.state.searchParameters.completionDate}
-                                            onChange = {(e)=>this.setState({searchParameters : {...this.state.searchParameters, completionDate : e}})}
-                                            />
-                                    </FormItem>
-                                    {this.showManagerOption()}
-                                    <FormItem>
-                                      <Button type="primary" icon="search">
-                                            Search
-                                      </Button>
-                                    </FormItem>
-
-                                </Form>
-                            </div>
+                            {this.searchByParametersForm()}
 
                         </div>
                         <Spin spinning={this.state.isloading}>
@@ -370,6 +389,7 @@ class TasksPage extends Component  {
                                         // validateStatus={this.state.name.validateStatus}
                                         // help={this.state.name.errorMsg}
                                         >
+                                        <label>Name</label>
                                         <Input
                                             size="large"
                                             name="name"
@@ -378,7 +398,7 @@ class TasksPage extends Component  {
                                             value={this.state.task.name}
                                             onChange={(e) => this.setState({task : {...this.state.task, name: e.target.value}})}/>
                                     </FormItem>
-
+                                    <label>context</label>
                                     <FormItem
                                 
                                         >
@@ -390,6 +410,7 @@ class TasksPage extends Component  {
                                             value={this.state.task.context}
                                             onChange={(e) => this.setState({task : {...this.state.task, context: e.target.value }})}/>
                                     </FormItem>
+                                    <label>Completion Date </label>
                                     <FormItem
                                         >
                                         <DatePicker
@@ -397,10 +418,11 @@ class TasksPage extends Component  {
                                             name="Target Date"
                                             autoComplete="off"
                                             placeholder="completion Date"
-                                            value={this.state.task.dateOfComplite}
+                                            value={moment(new Date(this.state.task.dateOfComplite), 'YYYY-MM-DD')}
+                                            //value={<Moment parse="YYYY-MM-DD HH:mm">{new Date(this.state.task.dateOfComplite)}</Moment>}
                                             onChange={(e) => this.setState({task : {...this.state.task, dateOfComplite : e}})}/>
                                     </FormItem>
-
+                                    <label>Manager Name </label>
                                     {this.showManagerOption()}
                                 </Form>
                                         </div>
@@ -415,11 +437,7 @@ class TasksPage extends Component  {
 
                     </div>
                 </div>
-                {/* <!-- .content --> */}
             </div>
-            {/* <!-- /#right-panel --> */}
-
-            {/* <!-- Right Panel --> */}
         </div>
     );
   }

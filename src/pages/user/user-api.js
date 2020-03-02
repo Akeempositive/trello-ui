@@ -72,3 +72,16 @@ export const getAllDepartments= async()=>{
 }
 
 
+
+export const searchByFilter= async(data)=>{
+    return axiosRequest({
+       userAccessToken: true,
+       headerType:`application/json`,
+       headerTypeData:true,
+       data : data,
+       url: `${API_BASE_URL}/api/users/searchUserByParameters/` + stateManager(USERID),
+       method: POSTMETHOD
+   })
+}
+
+
