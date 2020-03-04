@@ -215,10 +215,9 @@ class UserPage extends Component  {
 
 
     showUserTask = (userId, userName) => {
-        this.state = {...this.state, userIdInView : userId, userNameInView : userName};
         getTaskByUserId(userId)
         .then(response => {
-            this.setState({userReportVisible: false, userTableVisible: false,userTaskVisible : true, userTasks : response.data});
+            this.setState({userIdInView : userId, userNameInView : userName, userReportVisible: false, userTableVisible: false,userTaskVisible : true, userTasks : response.data});
         }).catch(error=> {
 
         })
@@ -647,7 +646,6 @@ class UserPage extends Component  {
                 title= {this.state.viewUserType + ' User'}
                 visible={this.state.userModalVisible}
                 onOk={(e)=>this.updateUser()}
-                // okButtonProps={{ disabled: this.isFormInvalid() }}
                 onCancel={this.cancelUserTaskModal}
                 okText={this.state.viewUserType}
                 >
@@ -745,7 +743,6 @@ class UserPage extends Component  {
                 title={this.state.taskViewType + ' Task'}
                 visible={this.state.viewTaskModal}
                 onOk={this.createTask}
-                // okButtonProps={{ disabled: this.isFormInvalid() }}
                 onCancel={this.cancelCreateTaskModal}
                 okText={this.state.taskViewType}
                 >
@@ -790,9 +787,9 @@ class UserPage extends Component  {
                 <FormItem>
                     <div><label>Task Status</label></div>
                     <Select value={this.state.task.state} style={{ width: 120 }} 
-                         onChange = {(e)=>{
+                         onChange = {(e)=>
                             this.setState({task : {...this.state.task, state : e}})
-                        }}
+                        }
                     >
                         <Option value="CREATED">Created</Option>
                         <Option value="ONGOING">Ongoing</Option>
@@ -922,15 +919,16 @@ class UserPage extends Component  {
         .then(response=>{
             notification['success']({
                  message: 'MCS',
-                 description:'Task Created Successfully',
+                 description:'Task Updated Successfully',
             });
             this.setState({isloading:false, viewTaskModal: false})
+            console.log(this.state.userIdInView + this.state.userNameInView)
             this.showUserTask(this.state.userIdInView, this.state.userNameInView)
        }).catch((error)=> {
             this.setState({isloading:false})
             notification['error']({
             message: 'MCS',
-            description: `Error Creating Task.`,
+            description: `Error Updating Task.`,
          });
      });
     }
