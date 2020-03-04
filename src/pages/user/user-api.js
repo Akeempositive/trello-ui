@@ -84,4 +84,13 @@ export const searchByFilter= async(data)=>{
    })
 }
 
+export const getReportsByUsername = async(username) =>{
+    return axiosRequest({
+        url: API_BASE_URL + '/api/weeklyReport/getReportsByUsername/'+ username,
+        method: GETMETHOD,
+        userAccessToken: true,
+        headerType: 'application/json'
+    });
+}
+
 

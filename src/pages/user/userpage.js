@@ -7,9 +7,10 @@ import BreadCrumb from '../../partials/breadcrumb'
 import Moment from 'react-moment';
 import moment from 'moment';
 import {createTask} from '../tasks/dashboard-api'
+import {getReportsForUser, updateComment} from '../weekly-report/index-api'
 import {fetchAllUsers,unBlockUser,blockUser, saveUser, getAllDepartments, getTaskByUserId, searchByFilter} from './user-api'
 import {hasAuthority} from  '../../utils/api-utils'
-import {CAN_CREATE_USER, CAN_UPDATE_USER, CAN_VIEW_USER, CAN_UPDATE_TASK} from '../../constants'
+import {CAN_CREATE_USER, CAN_UPDATE_USER, CAN_VIEW_USER, CAN_UPDATE_TASK, USER} from '../../constants'
 
 import {
     Form,
@@ -26,8 +27,10 @@ import {
     notification,Popconfirm,Table, Divider, Tag
   } from 'antd';
 import { resetPassword } from '../settings/settings-api';
+import { stateManager } from '../../utils/state-utils';
 
 const FormItem = Form.Item;
+const {TextArea} = Input;
 const Label = Form.Label;
 const { Option } = Select;
 class UserPage extends Component  {
@@ -36,6 +39,9 @@ class UserPage extends Component  {
         this.state={
             users:[],
             isloading:true,
+            reportModalVisible: false,
+            userReports : [],
+            report : {},
             viewUserType: '',
             userTableVisible : true,
             viewTaskModal: false,
@@ -45,6 +51,7 @@ class UserPage extends Component  {
             userSearchParameters : {},
             userModalVisible: false,
             departments : [{value : 'IT', label : 'IT', lastName : 'Suara'}],
+            loggedInUser : {},
             user : {role: 'ADMIN', managerName : ''},
             userIdInView: '',
             userNameInView : ''
@@ -76,8 +83,9 @@ class UserPage extends Component  {
     }
 
     componentDidMount(){
-        this.getAllUsers()
-        this.getAllDepartments()
+        this.state.loggedInUser = JSON.parse(stateManager(USER));
+        this.getAllUsers();
+        this.getAllDepartments();
     }
 
     getAllDepartments = () => {
@@ -116,6 +124,21 @@ class UserPage extends Component  {
         }
     }
 
+    getUserReportAction = (record) =>{
+        if(hasAuthority([CAN_UPDATE_TASK])){
+            return (
+                <span>
+                    <Divider type="vertical" />
+                    <button onClick={(e)=>{this.updateReportModal(record);}} type="button" class="btn btn-primary btn-sm">View Report</button>
+                </span>
+            )
+        }
+    }
+
+    updateReportModal =(record) =>{
+        this.setState({reportModalVisible : true, report : record});
+    }
+
     getUserAction = (record) =>{
         if(hasAuthority(['can_view_user_task'])){
             return (
@@ -139,9 +162,11 @@ class UserPage extends Component  {
             return (
                 <span>
                     <Divider type="vertical" />
-                    <button onClick={(e)=>{ this.showWeeklyReport(record.id, record.userName)}} type="button" class="btn btn-primary btn-sm">View Weekly Report</button>
-               </span>
-            )
+                    <button onClick={(e)=>{ this.showUserTask(record.id, record.userName)}} type="button" class="btn btn-primary btn-sm">View User Tasks</button>
+                <Divider type="vertical" />
+                    <button onClick={(e)=>{ this.showWeeklyReport(record.userName)}} type="button" class="btn btn-primary btn-sm">View Weekly Reports</button>
+                    </span>
+                )
         }
     }
 
@@ -160,6 +185,8 @@ class UserPage extends Component  {
             badge = {clazz:"badge badge-danger", display:"CANCELLED"}
         } else if(status=="CREATED"){
             badge = {clazz:"badge badge-primary", display:"CREATED"}
+        } else if(status == 'EXPIRED'){
+            badge = {clazz:"badge badge-danger", display:"EXPIRED"}
         }
         return (
             <span className={badge.clazz}>
@@ -169,11 +196,21 @@ class UserPage extends Component  {
     }
 
 
-    showWeeklyReport = (userId, userName) => {
+    showUserTask = (userId, userName) => {
         this.state = {...this.state, userIdInView : userId, userNameInView : userName};
         getTaskByUserId(userId)
         .then(response => {
-            this.setState({userTableVisible: false,userTaskVisible : true, userTasks : response.data});
+            this.setState({userReportVisible: false, userTableVisible: false,userTaskVisible : true, userTasks : response.data});
+        }).catch(error=> {
+
+        })
+    }
+
+    showWeeklyReport = ( userName) => {
+        this.state = {...this.state, userNameInView : userName};
+        getReportsForUser(userName)
+        .then(response => {
+            this.setState({userReportVisible: true, userTableVisible: false,userTaskVisible : false, userReports : response.data});
         }).catch(error=> {
 
         })
@@ -325,6 +362,45 @@ class UserPage extends Component  {
 
           return columns
     }
+    getTableHeaderReport = ()=>{
+        
+                const columns = [
+                    {
+                        title: 'Manager Name',
+                        dataIndex: 'managerName',
+                        key: 'managerName',
+                    },
+                    {
+                        title: 'CurrentStatus',
+                        dataIndex: 'state',
+                        key: 'state',
+                        render: state => (
+                            <span>
+                                {this.getTaskStatus(state)}
+                            </span>
+                          ),
+                    },
+                    {
+                        title: 'Date completed',
+                        dataIndex: 'dateOfComplite',
+                        key: 'dateOfComplite',
+                        render : dateOfComplite => (
+                            <Moment parse="YYYY-MM-DD HH:mm">{new Date(dateOfComplite)}</Moment>
+                         
+                        )
+                    },{
+                        title: 'Action',
+                        dataIndex: 'action',
+                        key: 'action',
+                        render: (text,record) =>
+                            (
+                                <span>{this.getUserReportAction(record)}</span>
+                            )
+                      },
+                  ];
+        
+                  return columns
+            }
 
     createUserModal = () =>{
         this.setState(
@@ -478,6 +554,7 @@ class UserPage extends Component  {
             <div className="card-body">
                 <Table columns={this.getTableHeaderUser()} dataSource={this.state.users} />
             </div>
+            {this.showEditUserModal()}
 
         </div>
         )
@@ -492,11 +569,124 @@ class UserPage extends Component  {
                     <Table columns={this.getTableHeaderTask()} dataSource={this.state.userTasks} />
                 </div>
 
+                {this.showEditTaskModal()}
+            </div>
+            )
+        } else if(this.state.userReportVisible){
+            return (
+                <div className="card">
+                <div className="card-header">
+                    <strong className="card-title">Tasks</strong>
+                    <button onClick={this.showUserTable}>Users</button>
+                </div>
+                <div className="card-body">
+                    <Table columns={this.getTableHeaderReport()} dataSource={this.state.userReports} />
+                </div>
+
+                {this.showUpdateReportModal()}
             </div>
             )
         }
     }
 
+    showEditUserModal = () => {
+        return (
+            <div className="col-md-12">
+            <Modal
+                title= {this.state.viewUserType + ' User'}
+                visible={this.state.userModalVisible}
+                onOk={(e)=>this.updateUser()}
+                // okButtonProps={{ disabled: this.isFormInvalid() }}
+                onCancel={this.cancelUserTaskModal}
+                okText={this.state.viewUserType}
+                >
+                    <div className="row">
+                        <Form  className="signup-form">
+                        <label>Username</label>
+                        <FormItem
+                    >
+                    <Input
+                        size="large"
+                        name="name"
+                        autoComplete="off"
+                        placeholder="username"
+                        type= "text"
+                        value={this.state.user.userName}
+                        onChange = {(e)=>this.setState({user : {...this.state.user, userName : e.target.value}})}
+                        />
+                </FormItem>
+
+                <label>Firstname</label>
+                <FormItem
+                    >
+                    <Input
+                        size="large"
+                        name="firstname"
+                        autoComplete="off"
+                        placeholder="Firstname"
+                        value={this.state.user.firstName}
+                        onChange = {(e)=>this.setState({user : {...this.state.user, firstName : e.target.value}})}
+                        />
+                </FormItem>
+                <label>Lastname</label>
+                <FormItem
+                    >
+                    <Input
+                        size="large"
+                        name="name"
+                        autoComplete="off"
+                        placeholder="Lastname"
+                        value={this.state.user.lastName}
+                        onChange = {(e)=>this.setState({user : {...this.state.user, lastName : e.target.value}})}
+                       />
+                </FormItem>
+
+                <label>Email</label>
+                <FormItem
+                   >
+            
+                    <Input
+                        size="large"
+                        name="email"
+                        autoComplete="off"
+                        placeholder="Email"
+                        onChange = {(e)=>this.setState({user : {...this.state.user, email : e.target.value}})}
+                        value={this.state.user.email}
+                       />
+                </FormItem>
+                <label>Role</label>
+                <FormItem
+                    >
+
+                    <Select value= {this.state.user.role} style={{ width: 120 }} 
+                    onChange = {(e)=>this.setState({user : {...this.state.user, role : e}})}>
+                    <Option value="ADMIN">Admin</Option>
+                        <Option value="HOC">HOC</Option>
+                        <Option value="HOD">HOD</Option>
+                        <Option value="Manager">Manager</Option>
+                    </Select>
+                    {/* <Label>Manager Name</Label> */}
+                </FormItem>
+                    
+                    {this.showManagerOption()}
+                    <label>Birthday</label>
+                    <FormItem
+                    >
+                        <DatePicker
+                        size="large"
+                        name="Target Date"
+                        autoComplete="off"
+                        placeholder="Date of Birth"
+                        value={moment(new Date(this.state.user.birthDay), 'YYYY-MM-DD')}
+                        onChange ={ (e)=> {this.setState({user : {...this.state.user, birthDay : e}})}}
+                       />
+                    </FormItem>
+                        </Form>
+                    </div>
+                </Modal>
+            </div>
+        );
+    }
     showEditTaskModal = () => {
         return (
             <div className="col-md-12">
@@ -554,16 +744,114 @@ class UserPage extends Component  {
         </div>
         )
     }
-    handleUserChange = (e) => {
-        console.log('Working yet?')
-        this.setState({user : {...this.state.user, key : e.target.value}})
-        console.log(this.state.user.userName)
+
+    showReportFilling = () => {
+            return (
+                <Form  className="signup-form"
+                >
+                <label>Report Due Date  </label>
+            
+                <Moment parse="YYYY-MM-DD">{new Date(this.state.report.dueDate)}</Moment>
+                <FormItem
+            >
+            <label>Report Content</label>
+                    <TextArea 
+                        size="large"
+                        name="amount"
+                        disabled = {this.state.loggedInUser.userName !== this.state.report.managerName}
+                        size = {{rows: 10, cols : 25}}
+                        //autoSize ={{minRows:3, maxRows : 12}}
+                        autoComplete="off"
+                        placeholder="Context"
+                        value={this.state.report.reportContent}
+                        onChange={(e) => this.setState({report : {...this.state.report, reportContent: e.target.value }})}/>
+                </FormItem>
+                <FormItem
+            >
+            <label>HOD Comment</label>
+                    <TextArea 
+                        size="large"
+                        name="amount"
+                        disabled={this.state.loggedInUser.role.name !== 'HOD'}
+                        autoSize ={{minRows:3, maxRows : 12}}
+                        autoComplete="off"
+                        placeholder="HOD Comment"
+                        value={this.state.report.hodComment}
+                        onChange={(e) => this.setState({report : {...this.state.report, hodComment: e.target.value }})}
+                        />
+                </FormItem>
+                <FormItem
+            >
+            <label>HOC Comment</label>
+                    <TextArea 
+                        size="large"
+                        disabled = {this.state.loggedInUser.role.name !== 'HOC'}
+                        name="amount"
+                        autoSize ={{minRows:3, maxRows : 12}}
+                        autoComplete="off"
+                        placeholder="HOC Comment"
+                        value={this.state.report.hocComment}
+                        onChange={(e) => this.setState({report : {...this.state.report, hocComment: e.target.value }})}
+                        />
+                </FormItem>
+                <FormItem
+           >
+
+            <label>Report Status</label>
+            <Select value={this.state.report.state} style={{ width: 120 }} 
+                onChange = {(e)=>this.setState({report : {...this.state.report, state : e}})}
+            >
+                <Option value="CREATED">Created</Option>
+                <Option value="ONGOING">Ongoing</Option>
+                <Option value="CANCELLED">Cancelled</Option>
+                <Option value="DONE">Done</Option>
+                <Option value="EXPIRED">Expired</Option>
+            </Select>
+        </FormItem>
+            </Form>
+        )
+    }
+
+    showUpdateReportModal = () => {
+        return (
+            <div className="col-md-12">
+            <Modal
+                title={'Report'}
+                visible={this.state.reportModalVisible}
+                onOk={this.submitReport}
+                onCancel={this.cancelReportModal}
+                okText={this.state.taskViewType}
+                >
+                    <div className="row">
+                        {this.showReportFilling()}
+                    </div>
+                </Modal>
+            </div>
+        )
+    }
+    
+    submitReport = () => {
+        updateComment(this.state.report, this.state.loggedInUser.role.name)
+        .then (response =>{
+            notification['success']({
+                message: 'MCS',
+                description:
+                    `Successfully submitted report.`,
+                });
+                this.showWeeklyReport(this.state.report.managerName);
+                this.setState({reportModalVisible : false})
+        }).catch(error => {
+
+        })
     }
 
     cancelCreateTaskModal = () => {
         this.setState({viewTaskModal:false})
     }
 
+    cancelReportModal = () => {
+        this.setState({reportModalVisible : false})
+    }
     createTask = () => {
         createTask(this.state.task)
         .then(response=>{
@@ -572,7 +860,7 @@ class UserPage extends Component  {
                  description:'Task Created Successfully',
             });
             this.setState({isloading:false, viewTaskModal: false})
-            this.showWeeklyReport(this.state.userIdInView, this.state.userNameInView)
+            this.showUserTask(this.state.userIdInView, this.state.userNameInView)
        }).catch((error)=> {
             this.setState({isloading:false})
             notification['error']({
@@ -618,104 +906,7 @@ class UserPage extends Component  {
                             <div className="col-md-12">
                                 {this.showAppropriateTable()}
                             </div>
-
-                            <div className="col-md-12">
-                                <Modal
-                                    title= {this.state.viewUserType + ' User'}
-                                    visible={this.state.userModalVisible}
-                                    onOk={(e)=>this.updateUser()}
-                                    // okButtonProps={{ disabled: this.isFormInvalid() }}
-                                    onCancel={this.cancelUserTaskModal}
-                                    okText={this.state.viewUserType}
-                                    >
-                                        <div className="row">
-                                            <Form  className="signup-form">
-                                            <label>Username</label>
-                                            <FormItem
-                                        >
-                                        <Input
-                                            size="large"
-                                            name="name"
-                                            autoComplete="off"
-                                            placeholder="username"
-                                            type= "text"
-                                            value={this.state.user.userName}
-                                            onChange = {(e)=>this.setState({user : {...this.state.user, userName : e.target.value}})}
-                                            />
-                                    </FormItem>
-
-                                    <label>Firstname</label>
-                                    <FormItem
-                                        >
-                                        <Input
-                                            size="large"
-                                            name="firstname"
-                                            autoComplete="off"
-                                            placeholder="Firstname"
-                                            value={this.state.user.firstName}
-                                            onChange = {(e)=>this.setState({user : {...this.state.user, firstName : e.target.value}})}
-                                            />
-                                    </FormItem>
-                                    <label>Lastname</label>
-                                    <FormItem
-                                        >
-                                        <Input
-                                            size="large"
-                                            name="name"
-                                            autoComplete="off"
-                                            placeholder="Lastname"
-                                            value={this.state.user.lastName}
-                                            onChange = {(e)=>this.setState({user : {...this.state.user, lastName : e.target.value}})}
-                                           />
-                                    </FormItem>
-
-                                    <label>Email</label>
-                                    <FormItem
-                                       >
-                                
-                                        <Input
-                                            size="large"
-                                            name="email"
-                                            autoComplete="off"
-                                            placeholder="Email"
-                                            onChange = {(e)=>this.setState({user : {...this.state.user, email : e.target.value}})}
-                                            value={this.state.user.email}
-                                           />
-                                    </FormItem>
-                                    <label>Role</label>
-                                    <FormItem
-                                        >
-
-                                        <Select value= {this.state.user.role} style={{ width: 120 }} 
-                                        onChange = {(e)=>this.setState({user : {...this.state.user, role : e}})}>
-                                        <Option value="ADMIN">Admin</Option>
-                                            <Option value="HOC">HOC</Option>
-                                            <Option value="HOD">HOD</Option>
-                                            <Option value="Manager">Manager</Option>
-                                        </Select>
-                                        {/* <Label>Manager Name</Label> */}
-                                    </FormItem>
-                                        
-                                        {this.showManagerOption()}
-                                        <label>Birthday</label>
-                                        <FormItem
-                                        >
-                                            <DatePicker
-                                            size="large"
-                                            name="Target Date"
-                                            autoComplete="off"
-                                            placeholder="Date of Birth"
-                                            value={moment(new Date(this.state.user.birthDay), 'YYYY-MM-DD')}
-                                            onChange ={ (e)=> {this.setState({user : {...this.state.user, birthDay : e}})}}
-                                           />
-                                        </FormItem>
-                                            </Form>
-                                        </div>
-                                    </Modal>
-                                </div>
                             </div>
-
-                            {this.showEditTaskModal()}
                         </Spin>
                     </div>
                 </div>

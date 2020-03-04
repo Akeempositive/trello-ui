@@ -2,7 +2,9 @@ import React, { Component } from 'react';
 import Header from '../../partials/header';
 import Navbar from '../../partials/navbar'
 import BreadCrumb from '../../partials/breadcrumb'
-import {getTasksForReport,submitReport} from './index-api'
+import moment from 'moment'
+import Moment from 'react-moment';
+import {getReportsForUser,submitReport, submitReports} from './index-api'
 import {
     Form,
     Input,
@@ -22,12 +24,13 @@ import { USER } from '../../constants/index';
 
 const FormItem = Form.Item;
 const { Option } = Select;
+const {TextArea} = Input;
 class WeeklyReportPage extends Component  {
     constructor(props) {
         super(props);
         this.state={
-            tasks:[],
-            task : {},
+            reports:[],
+            report : {},
             user : {},
             reportNumber : 0,
             noValidTaskForReport: false,
@@ -36,10 +39,10 @@ class WeeklyReportPage extends Component  {
         }
     }
 
-    nextTask = () => {
+    nextReport = () => {
 
-        this.state.tasks[this.state.reportNumber] = this.state.task;
-        if(this.state.reportNumber == this.state.tasks.length -1) {
+        this.state.reports[this.state.reportNumber] = this.state.report;
+        if(this.state.reportNumber == this.state.reports.length -1) {
             notification['success']({
                 message: 'MCS',
                 description:
@@ -48,11 +51,11 @@ class WeeklyReportPage extends Component  {
             return;
         }
         
-        this.setState({task : this.state.tasks[this.state.reportNumber+1], reportNumber : this.state.reportNumber +1});
+        this.setState({report : this.state.reports[this.state.reportNumber+1], reportNumber : this.state.reportNumber +1});
     }
 
-    previousTask = () => {
-        this.state.tasks[this.state.reportNumber] = this.state.task;
+    previousReport = () => {
+        this.state.reports[this.state.reportNumber] = this.state.report;
         if(this.state.reportNumber == 0) {
             notification['success']({
                 message: 'MCS',
@@ -62,11 +65,11 @@ class WeeklyReportPage extends Component  {
             return;
         }
         
-        this.setState ({task : this.state.tasks[this.state.reportNumber-1], reportNumber : this.state.reportNumber -1});
+        this.setState ({report : this.state.reports[this.state.reportNumber-1], reportNumber : this.state.reportNumber -1});
     }
     componentDidMount(){
         this.state.user = JSON.parse(stateManager(USER));
-        this.getAllTask();
+        this.getAllReports();
     }
 
     getTaskStatus = (status)=>{
@@ -97,29 +100,41 @@ class WeeklyReportPage extends Component  {
         console.log(`selected ${value}`);
     }
 
-    getAllTask = () =>{
+    getAllReports = () =>{
         this.setState({isloading:true})
-        getTasksForReport(this.state.user.userName)
+        getReportsForUser(this.state.user.userName)
         .then((response)=>{
             if(response.data.length == 0){
                 this.setState({noValidTaskForReport : true})
                 return;
             }
-            this.setState({tasks : response.data, reportNumber : 0, task : response.data[0]})
+            this.setState({reports : response.data, isloading : false, report : response.data[0]})
         }).catch((error)=>{
-            console.log('There is an error fetching all task due for reports')
+            console.log('There is an error fetching all reports')
         })
         this.setState({isloading:false})
     }
 
     submitReports = () => {
-        this.state.tasks[this.state.reportNumber] = this.state.task;
-        submitReport(this.state.user.id, this.state.tasks)
+        submitReports(this.state.user.id, this.state.reports)
         .then (response =>{
             notification['success']({
                 message: 'MCS',
                 description:
-                    `Successfully submitted report for the week.`,
+                    `Successfully submitted all reports.`,
+                });
+        }).catch(error => {
+
+        })
+    }
+
+    submitReport = () => {
+        submitReport(this.state.user.id, this.state.report)
+        .then (response =>{
+            notification['success']({
+                message: 'MCS',
+                description:
+                    `Successfully submitted report.`,
                 });
         }).catch(error => {
 
@@ -127,68 +142,77 @@ class WeeklyReportPage extends Component  {
     }
 
     showReportFilling = () => {
-        if(this.state.noValidTaskForReport){
+        if(!this.state.noValidTaskForReport){
             return (
                 <Form onSubmit={this.handleSubmit} className="signup-form"
                 >
-                <FormItem
-                >
-                    <Input
-                        size="large"
-                        name="name"
-                        autoComplete="off"
-                        placeholder="Task Name name"
-                        value={this.state.task.name}
-                        onChange={(e) => this.setState({task : {...this.state.task, name: e.target.value}})}/>
-                </FormItem>
-
+                <label>Report Due Date  </label>
+            
+                <Moment parse="YYYY-MM-DD">{new Date(this.state.report.dueDate)}</Moment>
                 <FormItem
             >
-                    <Input
+            <label>Report Content</label>
+                    <TextArea 
                         size="large"
                         name="amount"
+                        size = {{rows: 10, cols : 25}}
+                        //autoSize ={{minRows:3, maxRows : 12}}
                         autoComplete="off"
                         placeholder="Context"
-                        value={this.state.task.context}
-                        onChange={(e) => this.setState({task : {...this.state.task, context: e.target.value }})}/>
+                        value={this.state.report.reportContent}
+                        onChange={(e) => this.setState({report : {...this.state.report, reportContent: e.target.value }})}/>
                 </FormItem>
                 <FormItem
-                >
-                    <DatePicker
+            >
+            <label>HOD Comment</label>
+                    <TextArea 
                         size="large"
-                        name="Target Date"
+                        name="amount"
+                        disabled={true}
+                        autoSize ={{minRows:3, maxRows : 12}}
                         autoComplete="off"
-                        placeholder="completion Date"
-                        // value={this.state.task.dateOfComplite}
-                        onChange={(e) => this.setState({task : {...this.state.task, dateOfComplite : e}})}/>
+                        placeholder="HOD Comment"
+                        value={this.state.report.hodComment}/>
                 </FormItem>
-
+                <FormItem
+            >
+            <label>HOC Comment</label>
+                    <TextArea 
+                        size="large"
+                        disabled = {true}
+                        name="amount"
+                        autoSize ={{minRows:3, maxRows : 12}}
+                        autoComplete="off"
+                        placeholder="HOC Comment"
+                        value={this.state.report.hocComment}/>
+                </FormItem>
                 <FormItem
            >
-            <Select value={this.state.task.state} style={{ width: 120 }} 
-                onChange = {(e)=>this.setState({task : {...this.state.task, state : e}})}
-            >
-                <Option value="DONE">Completed</Option>
-                <Option value="PENDING">Pending</Option>
-                <Option value="STARTED">Started</Option>
-                <Option value="CANCELLED">Cancelled</Option>
-                <Option value="ALL">All</Option>
 
+            <label>Report Status</label>
+            <Select value={this.state.report.state} style={{ width: 120 }} 
+                onChange = {(e)=>this.setState({report : {...this.state.report, state : e}})}
+            >
+                <Option value="CREATED">Created</Option>
+                <Option value="ONGOING">Ongoing</Option>
+                <Option value="CANCELLED">Cancelled</Option>
+                <Option value="DONE">Done</Option>
+                <Option value="EXPIRED">Expired</Option>
             </Select>
         </FormItem>
         <FormItem>
-            <button type="button" visible={this.state.reportNumber > 0} onClick = {this.previousTask} className="btn btn-primary btn-flat m-b-30 m-t-30 m-l-10 m-r-10">Previous</button>
-            <button type="button" onClick={this.nextTask} className="btn btn-info btn-flat m-b-30 m-t-30 m-l-10 m-r-10">Next</button>
+            <button type="button" onClick = {this.previousReport} className="pull-left btn btn-primary btn-flat m-b-30 m-t-30 m-l-10 m-r-10">previous Report</button>
+            <button type="button" onClick = {this.nextReport} className="pull-right btn btn-primary btn-flat m-b-30 m-t-30 m-l-10 m-r-10">Next Report</button>
         </FormItem>
         <FormItem>
-            <button type="button" onClick = {this.submitReports} className="btn btn-primary btn-flat m-b-30 m-t-30 m-l-10 m-r-10">Submit Report</button>
-
-         </FormItem>
+            <button type="button" onClick = {this.submitReport} className="pull-left btn btn-primary btn-flat m-b-30 m-t-30 m-l-10 m-r-10">Submit One</button>
+            <button type="button" onClick = {this.submitReports} className="pull-right btn btn-primary btn-flat m-b-30 m-t-30 m-l-10 m-r-10">Submit All Reports</button>
+        </FormItem>
             </Form>
             )
         } else {
             return (
-                <label>You currently have no task to give report on. Either wait for new task or for the updated ones to be reviewed</label>
+                <label>You currently no report. You have to wait for new report to be due</label>
             )
         }
     }
