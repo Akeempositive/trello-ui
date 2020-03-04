@@ -3,7 +3,7 @@ import React, { Component } from 'react';
 import Header from '../../partials/header';
 import Navbar from '../../partials/navbar'
 import BreadCrumb from '../../partials/breadcrumb'
-
+import {formatDate} from '../../utils/date-utils'
 import Moment from 'react-moment';
 import moment from 'moment';
 import {createTask} from '../tasks/dashboard-api'
@@ -118,14 +118,14 @@ class UserPage extends Component  {
             return (
                 <span>
                     <Divider type="vertical" />
-                    <button onClick={(e)=>{this.editTaskModal(record);}} type="button" class="btn btn-primary btn-sm">View User Task</button>
+                    <button onClick={(e)=>{this.editTaskModal(record);}} type="button" class="btn btn-primary btn-sm">View Task</button>
                 </span>
             )
         }
     }
 
     getUserReportAction = (record) =>{
-        if(hasAuthority([CAN_UPDATE_TASK])){
+        if(hasAuthority([CAN_UPDATE_TASK])) {
             return (
                 <span>
                     <Divider type="vertical" />
@@ -139,54 +139,72 @@ class UserPage extends Component  {
         this.setState({reportModalVisible : true, report : record});
     }
 
-    getUserAction = (record) =>{
-        if(hasAuthority(['can_view_user_task'])){
+    viewSubmittedReport = (record) => {
+        if(hasAuthority([CAN_UPDATE_TASK]) && record.submittedWeeklyReport && (this.state.loggedInUser.role.name === 'HOD' || this.state.loggedInUser.role.name === 'HOC')){
             return (
                 <span>
                     <Divider type="vertical" />
-                    <button onClick={(e)=>{this.props.history.push(`/tasks/${record.id}`);}} type="button" class="btn btn-primary btn-sm">View User Task</button>
+                    <button onClick={(e)=>{ this.showWeeklyReport(record.userName)}} type="button" class="btn btn-primary btn-sm">View Weekly Reports</button>
                 </span>
             )
         }
+    }
 
-        if(hasAuthority(['can_update_user_info'])){
+    viewEditUser = (record) => {
+        if(hasAuthority([CAN_UPDATE_USER])){
             return (
                 <span>
                     <Divider type="vertical" />
                     <button onClick={(e)=>{ this.editUserModal(record)}} type="button" class="btn btn-primary btn-sm">Edit User</button>
-               </span>
+                </span>
             )
         }
+    }
 
-        if(hasAuthority([CAN_UPDATE_TASK]) && record.submittedWeeklyReport){
+    viewCanUpdteTask = (record) => {
+        if(hasAuthority([CAN_UPDATE_TASK])){
             return (
                 <span>
                     <Divider type="vertical" />
                     <button onClick={(e)=>{ this.showUserTask(record.id, record.userName)}} type="button" class="btn btn-primary btn-sm">View User Tasks</button>
-                <Divider type="vertical" />
-                    <button onClick={(e)=>{ this.showWeeklyReport(record.userName)}} type="button" class="btn btn-primary btn-sm">View Weekly Reports</button>
-                    </span>
-                )
+                </span>
+            )
         }
     }
 
+    getUserAction = (record) =>{
+        if(hasAuthority([CAN_UPDATE_TASK])){
+            {this.viewCanUpdteTask()}
+        }
+
+        if(hasAuthority([CAN_UPDATE_USER])){
+            {this.viewEditUser()}
+        }
+
+        if(hasAuthority([CAN_UPDATE_TASK]) && record.submittedWeeklyReport){
+            {this.viewSubmittedReport()}
+        }
+    }
+
+    // CREATED,
+    // ONGOING,
+    // CANCELLED,
+    // DONE,
+    // EXPIRED
+
     getTaskStatus = (status)=>{
         let badge ={}
-        if(status=="COMPLETED"){
-            badge = {clazz:"badge badge-success", display:"COMPLETED"}
-        }
-        else if(status=="PENDING"){
-            badge = {clazz:"badge badge-info", display:"PENDING"}
-        }
-        else if(status=="STARTED"){
-            badge = {clazz:"badge badge-primary", display:"STARTED"}
-        }
-        else if(status=="CANCELLED"){
-            badge = {clazz:"badge badge-danger", display:"CANCELLED"}
-        } else if(status=="CREATED"){
-            badge = {clazz:"badge badge-primary", display:"CREATED"}
-        } else if(status == 'EXPIRED'){
-            badge = {clazz:"badge badge-danger", display:"EXPIRED"}
+
+        if(status=="CREATED"){
+            badge = {clazz:"badge badge-info", display:"Created"}
+        } else if(status=="ONGOING"){
+            badge = {clazz:"badge badge-primary", display:"Ongoing"}
+        } else if(status=="CANCELLED"){
+            badge = {clazz:"badge badge-danger", display:"Cancelled"}
+        } else if(status=="DONE"){
+            badge = {clazz:"badge badge-success", display:"Done"}
+        }else if(status == 'EXPIRED'){
+            badge = {clazz:"badge badge-danger", display:"Expired"}
         }
         return (
             <span className={badge.clazz}>
@@ -294,8 +312,9 @@ class UserPage extends Component  {
                         dataIndex: 'dateOfComplite',
                         key: 'dateOfComplite',
                         render : dateOfComplite => (
-                            <Moment parse="YYYY-MM-DD HH:mm">{new Date(dateOfComplite)}</Moment>
-                         
+                            <span>
+                                {formatDate(dateOfComplite)}
+                            </span>
                         )
                     },
                     {
@@ -355,7 +374,11 @@ class UserPage extends Component  {
                 key: 'action',
                 render: (text,record) =>
                     (
-                        <span>{this.getUserAction(record)}</span>
+                        <span>
+                            {this.viewCanUpdteTask(record)}
+                            {this.viewSubmittedReport(record)}
+                            {this.viewEditUser(record)}
+                        </span>
                     )
               },
           ];
@@ -371,7 +394,7 @@ class UserPage extends Component  {
                         key: 'managerName',
                     },
                     {
-                        title: 'CurrentStatus',
+                        title: 'Current Status',
                         dataIndex: 'state',
                         key: 'state',
                         render: state => (
@@ -381,11 +404,11 @@ class UserPage extends Component  {
                           ),
                     },
                     {
-                        title: 'Date completed',
-                        dataIndex: 'dateOfComplite',
-                        key: 'dateOfComplite',
-                        render : dateOfComplite => (
-                            <Moment parse="YYYY-MM-DD HH:mm">{new Date(dateOfComplite)}</Moment>
+                        title: 'Due Date',
+                        dataIndex: 'dueDate',
+                        key: 'dueDate',
+                        render : dueDate => (
+                            <Moment parse="YYYY-MM-DD HH:mm">{new Date(dueDate)}</Moment>
                          
                         )
                     },{
@@ -505,12 +528,13 @@ class UserPage extends Component  {
         }
     }
 
-    showManagerOption = () => {
+    showManagerOptionInUserCreation = () => {
         if(!this.state.user.role ) return;
         if(this.state.user.role.indexOf('Manager')> -1){
             return (
                 <FormItem
                 >
+                <div><label>Department Name </label></div>
                     <Select 
                         value={this.state.user.department} 
                         style={{ width: 120 }}
@@ -525,6 +549,7 @@ class UserPage extends Component  {
             return (
                 <FormItem
                 >
+                <label>Department Name </label>
                 <Input
                     size="large"
                     name="name"
@@ -536,6 +561,32 @@ class UserPage extends Component  {
             </FormItem>
             )
         }
+    }
+
+    allManagersInTask = () => {
+        return (
+            this.state.users.map((item)=>
+                <Option value={item.userName}>{item.userName}</Option>
+            )
+        );
+    }
+
+    showManagerOptionInTaskCreation = () => {
+            return (
+                
+                <FormItem
+                >
+                <div><label>Manager Name </label></div>
+                    <Select 
+                        value={this.state.task.managerName} 
+                        style={{ width: 120 }}
+                        onChange = {(e)=>this.setState({task : {...this.state.task, managerName : e}})}
+                        placeholder= "Select a Manager"
+                    >
+                    {this.allManagersInTask()}
+                    </Select>
+                </FormItem>
+            )
     }
 
     showUserTable = () => {
@@ -668,7 +719,7 @@ class UserPage extends Component  {
                     {/* <Label>Manager Name</Label> */}
                 </FormItem>
                     
-                    {this.showManagerOption()}
+                    {this.showManagerOptionInUserCreation()}
                     <label>Birthday</label>
                     <FormItem
                     >
@@ -707,7 +758,7 @@ class UserPage extends Component  {
                         size="large"
                         name="name"
                         autoComplete="off"
-                        placeholder="Task Name name"
+                        placeholder="Name of Task"
                         value={this.state.task.name}
                         onChange={(e) => this.setState({task : {...this.state.task, name: e.target.value}})}/>
                 </FormItem>
@@ -718,7 +769,7 @@ class UserPage extends Component  {
                     <label>Task Description</label>
                     <Input
                         size="large"
-                        name="amount"
+                        name="context"
                         autoComplete="off"
                         placeholder="Context"
                         value={this.state.task.context}
@@ -726,7 +777,7 @@ class UserPage extends Component  {
                 </FormItem>
                 <FormItem
                     >
-                    <label>Completion Date</label>
+                    <div><label>Completion Date</label></div>
                     <DatePicker
                         size="large"
                         name="Target Date"
@@ -735,8 +786,22 @@ class UserPage extends Component  {
                         value={moment(new Date(this.state.task.dateOfComplite), 'YYYY-MM-DD')}
                         onChange={(e) => this.setState({task : {...this.state.task, dateOfComplite : e}})}/>
                 </FormItem>
-                <label>Mannager Name</label>
-                {this.showManagerOption()}
+                {this.showManagerOptionInTaskCreation()}
+                <FormItem>
+                    <div><label>Task Status</label></div>
+                    <Select value={this.state.task.state} style={{ width: 120 }} 
+                         onChange = {(e)=>{
+                            this.setState({task : {...this.state.task, state : e}})
+                        }}
+                    >
+                        <Option value="CREATED">Created</Option>
+                        <Option value="ONGOING">Ongoing</Option>
+                        <Option value="CANCELLED">Cancelled</Option>
+                        <Option value="DONE">Done</Option>
+                        <Option value="EXPIRED">Expired</Option>
+
+                    </Select>
+                </FormItem>
             </Form>
                     </div>
 

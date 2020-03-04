@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import Header from '../../partials/header';
 import Navbar from '../../partials/navbar'
 import BreadCrumb from '../../partials/breadcrumb'
+import {formatDate} from '../../utils/date-utils'
 import moment from 'moment'
 import Moment from 'react-moment';
 import {getReportsForUser,submitReport, submitReports} from './index-api'
@@ -74,19 +75,17 @@ class WeeklyReportPage extends Component  {
 
     getTaskStatus = (status)=>{
         let badge ={}
-        if(status=="COMPLETED"){
-            badge = {clazz:"badge badge-success", display:"COMPLETED"}
-        }
-        else if(status=="PENDING"){
-            badge = {clazz:"badge badge-info", display:"PENDING"}
-        }
-        else if(status=="STARTED"){
-            badge = {clazz:"badge badge-primary", display:"STARTED"}
-        }
-        else if(status=="CANCELLED"){
+
+        if(status=="CREATED"){
+            badge = {clazz:"badge badge-info", display:"CREATED"}
+        } else if(status=="ONGOING"){
+            badge = {clazz:"badge badge-primary", display:"ONGOING"}
+        } else if(status=="CANCELLED"){
             badge = {clazz:"badge badge-danger", display:"CANCELLED"}
-        } else if(status=="CREATED"){
-            badge = {clazz:"badge badge-primary", display:"CREATED"}
+        } else if(status=="DONE"){
+            badge = {clazz:"badge badge-success", display:"DONE"}
+        }else if(status == 'EXPIRED'){
+            badge = {clazz:"badge badge-danger", display:"EXPIRED"}
         }
         return (
             <span className={badge.clazz}>
@@ -146,10 +145,8 @@ class WeeklyReportPage extends Component  {
             return (
                 <Form onSubmit={this.handleSubmit} className="signup-form"
                 >
-                <label>Report Due Date  </label>
-            
-                <Moment parse="YYYY-MM-DD">{new Date(this.state.report.dueDate)}</Moment>
-                <FormItem
+                <label>{'Report Due Date ' + formatDate(this.state.report.dueDate)} </label>
+            <FormItem
             >
             <label>Report Content</label>
                     <TextArea 

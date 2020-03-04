@@ -8,6 +8,7 @@ import {hasAuthority} from  '../../utils/api-utils'
 import {fetchAllUsers} from '../user/user-api'
 import Moment from 'react-moment';
 import moment from 'moment';
+import {formatDate} from '../../utils/date-utils'
 import {stateManager} from '../../utils/state-utils'
 import {USER, CAN_UPDATE_TASK} from '../../constants'
 
@@ -76,19 +77,17 @@ class TasksPage extends Component  {
 
     getTaskStatus = (status)=>{
         let badge ={}
-        if(status=="DONE"){
-            badge = {clazz:"badge badge-success", display:"DONE"}
-        }
-        else if(status=="PENDING"){
-            badge = {clazz:"badge badge-info", display:"PENDING"}
-        }
-        else if(status=="CREATED"){
-            badge = {clazz:"badge badge-primary", display:"CREATED"}
-        }
-        else if(status=="CANCELLED"){
-            badge = {clazz:"badge badge-danger", display:"CANCELLED"}
-        } else if(status == 'STARTED'){
-            badge = {clazz:"badge badge-primary", display:"STARTED"}
+
+        if(status=="CREATED"){
+            badge = {clazz:"badge badge-info", display:"Created"}
+        } else if(status=="ONGOING"){
+            badge = {clazz:"badge badge-primary", display:"Ongoing"}
+        } else if(status=="CANCELLED"){
+            badge = {clazz:"badge badge-danger", display:"Cancelled"}
+        } else if(status=="DONE"){
+            badge = {clazz:"badge badge-success", display:"Done"}
+        }else if(status == 'EXPIRED'){
+            badge = {clazz:"badge badge-danger", display:"Expired"}
         }
         return (
             <span className={badge.clazz}>
@@ -135,8 +134,9 @@ class TasksPage extends Component  {
                 dataIndex: 'dateOfComplite',
                 key: 'dateOfComplite',
                 render : dateOfComplite => (
-                    <Moment parse="YYYY-MM-DD HH:mm">{new Date(dateOfComplite)}</Moment>
-                 
+                    <span>
+                        {formatDate(dateOfComplite)}
+                    </span>
                 )
             },
             {
@@ -218,7 +218,7 @@ class TasksPage extends Component  {
     }
 
     viewTaskModal =()=>{
-        this.setState({viewTaskModal:true, taskViewType: 'Create'})
+        this.setState({viewTaskModal:true, taskViewType: 'Create', task : {name : '', context : ''}})
     }
 
     editTaskModal = (record) => {
@@ -325,6 +325,29 @@ class TasksPage extends Component  {
         </div>
         )
     }
+
+    showTaskStatus = (task) => {
+        if(task.id){
+            return (
+                <FormItem visible={this.state.task.id}
+                >
+                 <div><label>Task Status</label></div>
+                 <Select value={this.state.task.state} style={{ width: 120 }} 
+                      onChange = {(e)=>{
+                         this.setState({task : {...this.state.task, state : e}})
+                     }}
+                 >
+                     <Option value="CREATED">Created</Option>
+                     <Option value="ONGOING">Ongoing</Option>
+                     <Option value="CANCELLED">Cancelled</Option>
+                     <Option value="DONE">Done</Option>
+                     <Option value="EXPIRED">Expired</Option>
+
+                 </Select>
+             </FormItem>
+            )
+        }
+    }
   render(){
     const bodystyle =  {
         background: "#f1f2f7",
@@ -424,6 +447,9 @@ class TasksPage extends Component  {
                                     </FormItem>
                                     <label>Manager Name </label>
                                     {this.showManagerOption()}
+
+                                    {this.showTaskStatus(this.state.task)}
+
                                 </Form>
                                         </div>
 
