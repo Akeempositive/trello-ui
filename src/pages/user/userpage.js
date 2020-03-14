@@ -11,7 +11,6 @@ import {getReportsForUser, updateComment} from '../weekly-report/index-api'
 import {fetchAllUsers,unBlockUser,blockUser, saveUser, getAllDepartments, getTaskByUserId, searchByFilter} from './user-api'
 import {hasAuthority} from  '../../utils/api-utils'
 import {CAN_CREATE_USER, CAN_UPDATE_USER, CAN_VIEW_USER, CAN_UPDATE_TASK, USER} from '../../constants'
-
 import {
     Form,
     Input,
@@ -33,7 +32,9 @@ const FormItem = Form.Item;
 const {TextArea} = Input;
 const Label = Form.Label;
 const { Option } = Select;
+
 class UserPage extends Component  {
+    
     constructor(props) {
         super(props);
         this.state={
@@ -186,12 +187,6 @@ class UserPage extends Component  {
         }
     }
 
-    // CREATED,
-    // ONGOING,
-    // CANCELLED,
-    // DONE,
-    // EXPIRED
-
     getTaskStatus = (status)=>{
         let badge ={}
 
@@ -212,7 +207,6 @@ class UserPage extends Component  {
             </span>
         );
     }
-
 
     showUserTask = (userId, userName) => {
         getTaskByUserId(userId)
@@ -330,7 +324,9 @@ class UserPage extends Component  {
                 return columns
             }
 
-    getTableHeaderUser = ()=>{
+    
+    
+            getTableHeaderUser = ()=>{
 
         const columns = [
             {
@@ -384,6 +380,7 @@ class UserPage extends Component  {
 
           return columns
     }
+    
     getTableHeaderReport = ()=>{
         
                 const columns = [
@@ -424,7 +421,8 @@ class UserPage extends Component  {
                   return columns
             }
 
-    createUserModal = () =>{
+    
+            createUserModal = () =>{
         this.setState(
             {
                 viewUserType: 'Create', 
@@ -505,6 +503,7 @@ class UserPage extends Component  {
 
         });
     }
+    
     allManagers = () => {
         return (
             this.state.departments.map((item)=>
@@ -591,6 +590,7 @@ class UserPage extends Component  {
     showUserTable = () => {
         this.setState({userTableVisible: true, userTaskVisible: false});
     }
+    
     showAppropriateTable = () =>{
         if(this.state.userTableVisible)
         {
@@ -736,6 +736,7 @@ class UserPage extends Component  {
             </div>
         );
     }
+    
     showEditTaskModal = () => {
         return (
             <div className="col-md-12">
@@ -914,6 +915,7 @@ class UserPage extends Component  {
     cancelReportModal = () => {
         this.setState({reportModalVisible : false})
     }
+    
     createTask = () => {
         createTask(this.state.task)
         .then(response=>{
@@ -933,7 +935,7 @@ class UserPage extends Component  {
      });
     }
 
-  render() {
+   render() {
     const bodystyle =  {
         background: "#f1f2f7",
         display: "table",
@@ -977,6 +979,7 @@ class UserPage extends Component  {
         </div>
     );
   }
+
 }
 
 export default UserPage;
